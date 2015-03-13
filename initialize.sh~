@@ -1,7 +1,0 @@
-#!/bin/bash
-
-export GOPATH=$(pwd)
-
-go install network
-
-go run src/tcp_example_test.go -raddr="129.241.187.151:20018" -lport = 20017
