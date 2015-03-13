@@ -3,10 +3,10 @@ package main
 
 import (
 	"fmt"
-	"../src/network"
 	"time"
 	"strconv"
 	"flag"
+	"../src/network"
 )
 
 

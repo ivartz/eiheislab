@@ -38,7 +38,7 @@ var conn_list_mutex = &sync.Mutex{}
 
 	conn_list = make(map[string]*net.TCPConn)
 
-	baddr, err := net.ResolveUDPAddr("udp4", "255.255.255.255:"+strconv.Itoa(20017))
+	baddr, err := net.ResolveUDPAddr("udp4", "129.241.255.255:"+strconv.Itoa(20017))
 	fmt.Println(baddr) // midlertidig
 	if err != nil {
 		fmt.Println("Could not resolve baddr")
