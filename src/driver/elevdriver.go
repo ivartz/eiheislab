@@ -58,15 +58,15 @@ func ElevInit() bool{
 }
 
 
-func MotorUp(){
+func MoveUp(){
 	motorChan <- MOVE_UP
 }
 
-func MotorDown(){
+func MoveDown(){
 	motorChan <- MOVE_DOWN
 }
 
-func MotorStop(){
+func Stop(){
 	motorChan <- MOVE_STOP
 }
 
@@ -75,16 +75,16 @@ func MotorControl(chanDir chan){
 	if dir == MOVE_UP{
 		Io_clear_bit(MOTORDIR)
 		Io_write_analog(MOTOR, 2800)
-		MotorUp()
+		MoveUp()
 	}
 	if dir == MOVE_DOWN{
 		Io_set_bit(MOTORDIR)
 		Io_write_analog(MOTOR, 2800)
-		MotorDown()
+		MoveDown()
 	}
 	if dir == MOVE_STOP{
 		Io_write_analog(MOTOR, 0)
-		MotorStop()
+		Stop()
 	}
 
 }
@@ -223,6 +223,24 @@ func GetButton() (int, OrderType){
 
 func GetButtonChan() chan Button{
 	return buttonChan
+}
+
+func GetFloorSensorSignal() int{
+	if Io_read_bit(SENSOR_FLOOR1){
+		return 1
+	}
+	else if Io_read_bit(SENSOR_FLOOR2){
+		return 2
+	}
+	else if Io_read_bit(SENSOR_FLOOR3){
+		return 3
+	}
+	else if Io_read_bit(SENSOR_FLOOR4){
+		return 4
+	}
+	else{
+		return -1
+	}
 }
 
 func SetFloorLight(floor int){
