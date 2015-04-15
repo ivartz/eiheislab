@@ -75,18 +75,22 @@ func MotorControl(chanDir chan){
 	if dir == MOVE_UP{
 		Io_clear_bit(MOTORDIR)
 		Io_write_analog(MOTOR, 2800)
-		MoveUp()
+		//MoveUp()
 	}
 	if dir == MOVE_DOWN{
 		Io_set_bit(MOTORDIR)
 		Io_write_analog(MOTOR, 2800)
-		MoveDown()
+		//MoveDown()
 	}
 	if dir == MOVE_STOP{
 		Io_write_analog(MOTOR, 0)
-		Stop()
+		//Stop()
 	}
 
+}
+
+func GetMotorChan() chan MotorDirection{
+	return motorChan
 }
 
 
@@ -269,11 +273,11 @@ func GetFloorChan() chan int{
 	return floorChan
 }
 
-func SetStopButton(){
+func SetStopButtonLight(){
 	Io_set_bit(LIGHT_STOP)
 }
 
-func ClearStopButton(){
+func ClearStopButtonLight(){
 	Io_clear_bit(LIGHT_STOP)
 }
 
@@ -311,7 +315,7 @@ func GetObstruction(){
 	return obstr
 }
 
-func GetObstructionChan(){
+func GetObstructionChan() chan bool{
 	return obstrChan
 }
 
