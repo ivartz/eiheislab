@@ -22,11 +22,14 @@ const BUTTON_CALL_UP OrderType = 0
 const BUTTON_CALL_DOWN OrderType = 1
 const BUTTON_COMMAND OrderType = 2
 
-var buttonChan chan Button
-var floorChan chan int
-var motorChan chan MotorDirection
-var stopChan chan bool
-var obstrChan chan bool
+//var buttonChan chan Button // Not needed
+//var floorChan chan int
+var motorChan = (chan MotorDirection, 1) //Not currently functionality for sending 
+										// and recieving on this channel on a time instant
+										// Could use threads (goroutines)?
+										// NOTE: Can possibly need a larger buffer! 
+//var stopChan chan bool
+//var obstrChan chan bool
 
 func ElevInit() bool{
 
@@ -37,7 +40,6 @@ func ElevInit() bool{
 		return false
 	}
 
-	// ToDo:
 	// Zero all floor button lamps
 	for i := 1; i <= N_FLOORS; ++i {
 		if i != 1{
@@ -50,7 +52,7 @@ func ElevInit() bool{
 	}
 
 	// Clear stop lamp, door open lamp, and set floor indicator to ground floor.
-	ClearStopButton()
+	ClearStopButtonLight()
 	ClearDoorLight()
 	SetFloorLight(1)
 
@@ -77,12 +79,12 @@ func MotorControl(chanDir chan){
 		Io_write_analog(MOTOR, 2800)
 		//MoveUp()
 	}
-	if dir == MOVE_DOWN{
+	else if dir == MOVE_DOWN{
 		Io_set_bit(MOTORDIR)
 		Io_write_analog(MOTOR, 2800)
 		//MoveDown()
 	}
-	if dir == MOVE_STOP{
+	else if dir == MOVE_STOP{
 		Io_write_analog(MOTOR, 0)
 		//Stop()
 	}
@@ -153,13 +155,13 @@ func ClearButtonLight(floor int, dir OrderType){
 		*/
 }
 
-func CheckButton(floor int, dir OrderType) bool{
+func CheckButton(dir OrderType, floor int) bool{
 	hardware = LocalizeHardware("button", floor, dir)
 	if Io_read_bit(hardware){
-		var action Button
+		/*var action Button
 		action.Floor = floor
 		action.Dir = dir
-		buttonChan <- action
+		buttonChan <- action*/
 		return true
 	}
 	else{
@@ -219,8 +221,8 @@ func LocalizeHardware(typeof string, floor int, dir OrderType) const int{
 	}
 	return hardware
 }
-
-func GetButton() (int, OrderType){
+/*
+func GetButtonFromChan() (int, OrderType){
 	button := <- buttonChan
 	return button.Floor, button.Dir
 }
@@ -228,7 +230,7 @@ func GetButton() (int, OrderType){
 func GetButtonChan() chan Button{
 	return buttonChan
 }
-
+*/
 func GetFloorSensorSignal() int{
 	if Io_read_bit(SENSOR_FLOOR1){
 		return 1
@@ -263,7 +265,7 @@ func SetFloorLight(floor int){
 		Io_set_bit(LIGHT_FLOOR_IND2)
 	}
 }
-
+/*
 func GetFloorLight() int {
 	floor := <-floorChan
 	return floor
@@ -272,7 +274,7 @@ func GetFloorLight() int {
 func GetFloorChan() chan int{
 	return floorChan
 }
-
+*/
 func SetStopButtonLight(){
 	Io_set_bit(LIGHT_STOP)
 }
@@ -283,15 +285,15 @@ func ClearStopButtonLight(){
 
 func CheckStopButton() bool{
 	if Io_read_bit(STOP){
-		stopChan <- true
+		//stopChan <- true
 		return true
 	}
 	else{
 		return false
 	}
 }
-
-func GetStopButton() bool{
+/*
+func GetStopButtonFromChan() bool{
 	stopButton := <- stopChan
 	return stopButton
 }
@@ -299,26 +301,26 @@ func GetStopButton() bool{
 func GetStopChan() chan bool{
 	return stopChan
 }
-
+*/
 func CheckObstruction()bool{
 	if Io_read_bit(OBSTRUCTION){
-		obstrChan <- true
+		//obstrChan <- true
 		return true
 	}
 	else{
 		return false
 	}
 }
-
-func GetObstruction(){
+/*
+func GetObstructionFromChan(){
 	obstr := <- obstrChan
-	return obstr
+	return obstrChan
 }
 
 func GetObstructionChan() chan bool{
 	return obstrChan
 }
-
+*/
 func SetDoorLight(){
 	Io_set_bit(LIGHT_DOOR_OPEN)
 }
@@ -329,4 +331,8 @@ func ClearDoorLight(){
 
 func CheckDoorLight() bool{
 	return Io_read_bit(LIGHT_DOOR_OPEN)
+}
+
+func GetNFloors() const{
+	return N_FLOORS
 }
