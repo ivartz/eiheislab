@@ -2,8 +2,8 @@ package driver
 
 import "fmt"
 
-const N_FLOORS = 4
-const N_BUTTONS = 3
+//const N_FLOORS int = 4
+//const N_BUTTONS = 3
 
 type MotorDirection int
 type OrderType int
@@ -24,14 +24,14 @@ const BUTTON_COMMAND OrderType = 2
 
 //var buttonChan chan Button // Not needed
 //var floorChan chan int
-var motorChan = (chan MotorDirection, 1) //Not currently functionality for sending 
+var motorChan := make(chan MotorDirection, 1) //Not currently functionality for sending 
 										// and recieving on this channel on a time instant
 										// Could use threads (goroutines)?
 										// NOTE: Can possibly need a larger buffer! 
 //var stopChan chan bool
 //var obstrChan chan bool
 
-func ElevInit() bool{
+func Initialize() bool{
 
 	// Init hardware
 	init = Io_init()
@@ -40,17 +40,8 @@ func ElevInit() bool{
 		return false
 	}
 
-	// Zero all floor button lamps
-	for i := 1; i <= N_FLOORS; ++i {
-		if i != 1{
-			ClearButtonLight(i, BUTTON_CALL_DOWN)
-		}
-		if i != N_FLOORS{
-			ClearButtonLight(i, BUTTON_CALL_UP)
-		}
-		ClearButtonLight(i, BUTTON_COMMAND)
-	}
-
+	ClearAllOrderLights()
+	
 	// Clear stop lamp, door open lamp, and set floor indicator to ground floor.
 	ClearStopButtonLight()
 	ClearDoorLight()
@@ -72,8 +63,8 @@ func Stop(){
 	motorChan <- MOVE_STOP
 }
 
-func MotorControl(chanDir chan){
-	dir := <- chanDir
+func MotorControl(){
+	dir := <- motorChan
 	if dir == MOVE_UP{
 		Io_clear_bit(MOTORDIR)
 		Io_write_analog(MOTOR, 2800)
@@ -96,7 +87,7 @@ func GetMotorChan() chan MotorDirection{
 }
 
 
-func SetButtonLight(floor int, dir OrderType){
+func SetButtonLight(dir OrderType, floor int){
 	hardware = LocalizeHardware("light", floor, dir)
 	Io_set_bit(hardware)
 
@@ -126,7 +117,7 @@ func SetButtonLight(floor int, dir OrderType){
 		*/
 }
 
-func ClearButtonLight(floor int, dir OrderType){
+func ClearButtonLight(dir OrderType, floor int){
 	hardware = LocalizeHardware("light", floor, dir)
 	Io_clear_bit(hardware)
 /*
@@ -332,7 +323,24 @@ func ClearDoorLight(){
 func CheckDoorLight() bool{
 	return Io_read_bit(LIGHT_DOOR_OPEN)
 }
+/*
+func SetNFloors(floors int){
+	N_FLOORS = floors
+}
 
-func GetNFloors() const{
+func GetNFloors() int{
 	return N_FLOORS
+}
+*/
+func ClearAllOrderLights(nFloors int){
+	// Zero all floor button lamps
+	for floor := 1; floor <= nFloors; floor++ {
+		if floor != 1{
+			ClearButtonLight(BUTTON_CALL_DOWN, floor)
+		}
+		if i != nFloors{
+			ClearButtonLight(BUTTON_CALL_UP, floor)
+		}
+		ClearButtonLight(BUTTON_COMMAND, floor)
+	}
 }

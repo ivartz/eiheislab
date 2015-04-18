@@ -11,14 +11,12 @@ import (
 	"../src/communication"
 )
 
-var elevatorNumber int = 1;
-var numberOfElevators int = 3;
-
+// elevatorNumber, numberOfFloors and numberOfElevators constants are set in ../src/queue/queue.go
 
 func main(){
 
 	// Initialize hardware
-	if (!ElevInit()){
+	if (!driver.Initialize()){
 		fmt.Println("Unable to initialize hardware..")
 		return 1
 	}
@@ -27,7 +25,7 @@ func main(){
 	//fmt.Printf("****Successfully initialized driver on elevator nr.: %v****\n****to communicate with %v other elevators****\n", elevatorNumber, numberOfElevators)
 
 	// Temporary message function
-	fmt.Println("****Successfully initialized driver on elevator nr.: %v.****\n****Network NOT currently initialized.****\n", elevatorNumber)
+	fmt.Println("****Successfully initialized driver on elevator nr.: %v.****\n****Network NOT currently initialized.****\n", queue.GetElevatorNumber())
 
 	// Moving down as part of the initialization
 	driver.MoveDown()
@@ -43,7 +41,7 @@ func main(){
 
 	for{
 
-		driver.MotorControl(driver.GetMotorChan())
+		driver.MotorControl()
 
 		HandleStopButton()
 		
@@ -62,30 +60,35 @@ func main(){
 }
 
 func HandleFloorButtons(){
+	// Checking floor buttons and adding orders, setting button lights and calling events
 	for (floor := 1; floor <= driver.GetNFloors(); ++floor){
 		if (floor > 1 && floor < driver.GetNFloors()){
 			if (driver.CheckButton(0, floor)){
 				if (queue.GetAssignedTask() == -1 && floor != driver.GetFloorSensorSignal()){
-					states.EvNewOrderInEmptyQueue(floor)
-					queue.AddOrder(0, floor)
+					states.EvNewOrderInEmptyQueue(floor)					
+					queue.AddFloorOrder(0, floor)
+					driver.SetButtonLight(0, floor)
 				}
 				else if (queue.GetAssignedTask() == -1 && floor == driver.GetFloorSensorSignal()){
 					states.EvNewOrderInCurrentFloor()
 				}
-				else{
-					queue.AddOrder(0, floor)
+				else{					
+					queue.AddFloorOrder(0, floor)
+					driver.SetButtonLight(0, floor)
 				}
 			}
 			if (driver.CheckButton(1, floor)){
 				if (queue.GetAssignedTask() == -1 && floor != driver.GetFloorSensorSignal()){
-					states.EvNewOrderInEmptyQueue(floor)
-					queue.AddOrder(1, floor)
+					states.EvNewOrderInEmptyQueue(floor)					
+					queue.AddFloorOrder(1, floor)
+					driver.SetButtonLight(1, floor)
 				}
 				else if (queue.GetAssignedTask() == -1 && floor == driver.GetFloorSensorSignal()){
 					states.EvNewOrderInCurrentFloor()
 				}
-				else{
-					queue.AddOrder(1, floor)
+				else{				
+					queue.AddFloorOrder(1, floor)
+					driver.SetButtonLight(1, floor)
 				}
 			}
 		}
@@ -94,21 +97,31 @@ func HandleFloorButtons(){
 			if (driver.CheckButton(0, floor)){
 				if (queue.GetAssignedTask() == -1 && floor != driver.GetFloorSensorSignal()){
 					states.EvNewOrderInEmptyQueue(floor)
-					queue.AddOrder(0, floor)
+					queue.AddFloorOrder(0, floor)
+					driver.SetButtonLight(0, floor)
 				}
 			}
 			else if (floor == driver.GetFloorSensorSignal()){
 				states.EvNewOrderInCurrentFloor()
 			}
 			else{
-				queue.AddOrder(1, floor)
+				queue.AddFloorOrder(0, floor)
+				driver.SetButtonLight(0, floor)
 			}
 		}
 		if (floor == driver.GetNFloors()){
 			if (driver.CheckButton(1, floor)){
 				if (queue.GetAssignedTask() == -1 && floor != driver.GetFloorSensorSignal()){
 					states.EvNewOrderInEmptyQueue(floor)
-					queue.AddOrder(1, floor)
+					queue.AddFloorOrder(1, floor)
+					driver.SetButtonLight(1, floor)
+				}
+				else if (floor == driver.GetFloorSensorSignal()){
+					states.EvNewOrderInCurrentFloor()		
+				}
+				else{
+					queue.AddFloorOrder(1, floor)
+					driver.SetButtonLight(1, floor)
 				}
 			}
 		}
@@ -123,13 +136,13 @@ func HandleCommandButtons(){
 			}
 			if (queue.GetAssignedTask() == -1 && floor != driver.GetFloorSensorSignal()){
 				states.EvNewOrderInEmptyQueue()
-				queue.AddOrder(2, floor)
+				queue.AddFloorOrder(2, floor)
 			}
 			else if (queue.GetAssignedTask() == -1 && floor == driver.GetFloorSensorSignal()){
 				states.EvNewOrderInCurrentFloor()
 			}
 			else{
-				queue.AddOrder(2, floor)
+				queue.AddFloorOrder(2, floor)
 			}
 		}
 	}
@@ -157,10 +170,8 @@ func HandleStopButton(){
 
 func HandleTimeOut(){
 	// Time out signal check
-	if (states.CheckTimeOut()){
-		if (!driver.CheckObstruction()){
-			states.EvTimerOut()
-		}
+	if (states.CheckTimeOut() && !driver.CheckObstruction()){
+		states.EvTimerOut()
 	}
 }
 

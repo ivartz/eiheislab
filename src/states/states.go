@@ -3,10 +3,8 @@ package states
 import (
 	"fmt"
 	"time"
-	"../src/queue"
-	"../src/communication"
-	"../src/driver"
-
+	"driver"
+	"queue"
 )
 
 type ElevatorState int
@@ -36,34 +34,59 @@ func EvFloorReached(f int){
 	switch state{
 	case INIT:
 		queue.RemoveAllOrders()
+		driver.ClearAllOrderLights(queue.GetNumberOfFloors())
 		SetFloorIndicator(f)
 		StopElevatorGood()
 		state = IDLE
-		communication.SetCurrentFloor(f)
+		queue.SetCurrentFloor(f)
 		break
 
 	case MOVING:
 		SetFloorIndicator(f)
-		communication.SetCurrentFloor(f)
-		if (queue.ShallStop(f, communication.GetElevatorDirection())){
+		queue.SetCurrentFloor(f)
+		if (queue.ShallStop()){
 			StopElevatorGood()
 
-			if (f == 2 || f == 3){
-				queue.RemoveFloorOrder(f, communication.GetElevatorDirection())
-				if (queue.ShallRemoveOppositeFloorOrder(f), communication.GetElevatorDirection()){
-					if (communication.GetElevatorDirection() == 1){
-						queue.RemoveFloorOrder(f, -1)
+			if (f > 1 && f < queue.GetNumberOfFloors()){
+				//queue.RemoveFloorOrder(queue.GetDirectionElevator(), f)
+
+				if (queue.GetDirectionElevator() == 1){
+					queue.RemoveFloorOrder(0, f)
+					driver.ClearButtonLight(0, f)
+				}
+				else if (queue.GetDirectionElevator() == -1){
+					queue.RemoveFloorOrder(1, f)
+					driver.ClearButtonLight(1, f)
+				}
+				driver.ClearButtonLight(2,f)
+
+				if (queue.ShallRemoveOppositeFloorOrder()){
+					if (queue.GetDirectionElevator() == 1){
+						queue.RemoveFloorOrder(1, f)
+						driver.ClearButtonLight(1, f)
+						driver.ClearButtonLight(2, f)
 					}
-					else if (communication.GetElevatorDirection() == -1){
-						queue.RemoveFloorOrder(f, 1)
+					else if (queue.GetDirectionElevator() == -1){
+						queue.RemoveFloorOrder(0, f)
+						driver.ClearButtonLight(0, f)
+						driver.ClearButtonLight(2, f)						
 					}
 				}
 			}
 			else if (f == 1){
-				queue.RemoveFloorOrder(f, 1)
+				queue.RemoveFloorOrder(0, f)
+				driver.ClearButtonLight(0, f)
+				driver.ClearButtonLight(2, f)
+				// Changing direction so that AssignNewTask() quickly can find the best task for the this elevator
+				// Also so that ShallStop() will d
+				queue.SetDirectionElevator(1)
 			}
-			else if (f == 4){
-				queue.RemoveFloorOrder(f, -1)
+			else if (f == queue.GetNumberOfFloors()){
+				queue.RemoveFloorOrder(1, f)
+				driver.ClearButtonLight(1, f)
+				driver.ClearButtonLight(2, f)
+				// Changing direction so that AssignNewTask() quickly can find the best task for the this elevator
+				queue.SetDirectionElevator(-1)
 			}
 			driver.SetDoorLight()
 			fmt.Println("**Door open**")
@@ -71,12 +94,14 @@ func EvFloorReached(f int){
 			state = DOOR_OPEN
 		}
 		else if (f == 1){
-			SetElevatorDirection(1)
-			MoveUp()						
+			// Changing direction
+			queue.SetDirectionElevator(1)
+			driver.MoveUp()						
 		} 
-		else if (f == driver.GetNFloors()){
-			SetElevatorDirection(-1)
-			MoveDown()
+		else if (f == queue.GetNumberOfFloors()){
+			// Changing direction
+			queue.SetDirectionElevator(-1)
+			driver.MoveDown()
 		}
 		else{
 			state = MOVING
@@ -111,18 +136,18 @@ func EvTimerOut(){
 	//ClearTimeOut()
 	switch state{
 	case DOOR_OPEN:
-		driver.SetDoorLight()
-		fmt.Println("**Timeout, door closed**")
+		driver.ClearDoorLight()
+		fmt.Println("**Timeout, door closed. Assigning new task**")
 		queue.AssignNewTask()
-		if (queue.GetAssignedTask() > communication.GetCurrentFloor()){
-			communication.SetElevatorDirection(1)
+		if (queue.GetAssignedTask() > queue.GetCurrentFloor()){
+			queue.SetDirectionElevator(1)
 			driver.MoveUp()
 		}
 		else if (queue.GetAssignedTask() == -1){
-			return
+			continue
 		}
-		else if (queue.GetAssignedTask() < communication.GetCurrentFloor()){
-			communication.SetElevatorDirection(-1)
+		else if (queue.GetAssignedTask() < queue.GetCurrentFloor()){
+			queue.SetDirectionElevator(-1)
 			driver.MoveDown()
 		}
 		fmt.Printf("Assigned task is: %v\n", queue.GetAssignedTask())
@@ -147,6 +172,7 @@ func EvStopButton(){
 	case MOVING:
 		StopElevatorGood()
 		queue.RemoveAllOrders()
+		driver.ClearAllOrderLights(queue.GetNumberOfFloors())
 		driver.SetStopButtonLight()
 		SetElevatorStopButtonVariable()
 		state = STOPPED
@@ -157,6 +183,7 @@ func EvStopButton(){
 
 	case OBSTRUCTION:
 		queue.RemoveAllOrders()
+		driver.ClearAllOrderLights(queue.GetNumberOfFloors())
 		driver.SetStopButtonLight()
 		SetElevatorStopButtonVariable()
 		state = STOPPED
@@ -166,6 +193,7 @@ func EvStopButton(){
 
 	case IDLE:
 		queue.RemoveAllOrders()
+		driver.ClearAllOrderLights(queue.GetNumberOfFloors())
 		driver.SetStopButtonLight()
 		SetElevatorStopButtonVariable()
 		driver.SetDoorLight()
@@ -174,6 +202,7 @@ func EvStopButton(){
 
 	default:
 		queue.RemoveAllOrders()
+		driver.ClearAllOrderLights(queue.GetNumberOfFloors())
 		driver.SetStopButtonLight()
 		SetElevatorStopButtonVariable()
 		state = STOPPED
@@ -238,26 +267,26 @@ func EvObstructionOff(){
 		if (queue.GetAssignedTask() == -1){
 			state = IDLE
 		}
-		else if (communication.GetElevatorDirection() == 1){
-			if (communication.GetCurrentFloor() == driver.GetNFloors()){
-				communication.SetElevatorDirection(-1)
+		else if (queue.GetDirectionElevator() == 1){
+			if (queue.GetCurrentFloor() == queue.GetNumberOfFloors()){
+				queue.SetDirectionElevator(-1)
 				driver.MoveDown()
 				state = MOVING
 			}
 			else{
-				communication.SetElevatorDirection(1)
+				queue.SetDirectionElevator(1)
 				driver.MoveUp()
 				state = MOVING
 			}
 		}
-		else if (communication.GetElevatorDirection() == -1){
-			if (communication.GetCurrentFloor() == 1){
-				communication.SetElevatorDirection(1)
+		else if (queue.GetDirectionElevator() == -1){
+			if (queue.GetCurrentFloor() == 1){
+				queue.SetDirectionElevator(1)
 				driver.MoveUp()
 				state = MOVING
 			}
 			else{
-				communication.SetElevatorDirection(-1)
+				queue.SetDirectionElevator(-1)
 				driver.MoveDown()
 				state = MOVING
 			}
@@ -279,37 +308,37 @@ func EvObstructionOff(){
 	}
 }
 
-func EvNewOrderInEmptyQueue(buttonFloor int){
+func EvNewOrderInEmptyQueue(floorButton int){
 	switch state{
 	case IDLE:
-		if (buttonFloor > communcation.GetCurrentFloor()){
-			communication.SetElevatorDirection(1)
+		if (floorButton > communcation.GetCurrentFloor()){
+			queue.SetDirectionElevator(1)
 			driver.MoveUp()
 		}
-		else if (buttonFloor < communication.GetCurrentFloor()){
-			communication.SetElevatorDirection(-1)
+		else if (floorButton < queue.GetCurrentFloor()){
+			queue.SetDirectionElevator(-1)
 			driver.MoveDown()
 		}
 		state = MOVING
 		break
 
 	case STOPPED:
-		if (buttonFloor > communication.GetCurrentFloor()){
-			communication.SetElevatorDirection(1)
+		if (floorButton > queue.GetCurrentFloor()){
+			queue.SetDirectionElevator(1)
 			driver.MoveUp()
 		}
-		else if (buttonFloor < communication.GetCurrentFloor()){
-			communication.SetElevatorDirection(-1)
+		else if (floorButton < queue.GetCurrentFloor()){
+			queue.SetDirectionElevator(-1)
 			driver.MoveDown()
 		}
-		else if (buttonFloor == communication.GetCurrentFloor()){
+		else if (floorButton == queue.GetCurrentFloor()){
 			fmt.Printf("WARNING:EvNewOrderInEmptyQueue() was called when there was a \nnew order in the same floor as the elevator. \nAction Catching up by reversing motor.\n")
-			if (communication.GetElevatorDirection() == 1){
-				communication.SetElevatorDirection(-1)
+			if (queue.GetDirectionElevator() == 1){
+				queue.SetDirectionElevator(-1)
 				driver.MoveDown()
 			}
-			else if (communication.GetElevatorDirection() == -1){
-				communication.SetElevatorDirection(1)
+			else if (queue.GetDirectionElevator() == -1){
+				queue.SetDirectionElevator(1)
 				driver.MoveUp()
 			}
 		}
@@ -321,6 +350,7 @@ func EvNewOrderInEmptyQueue(buttonFloor int){
 
 	case INIT:
 		queue.RemoveAllOrders()
+		driver.ClearAllOrderLights(queue.GetNumberOfFloors())
 		break
 
 	default:
@@ -351,12 +381,12 @@ func EvNewOrderInCurrentFloor(){//f int, buttonDirection int){
 }
 
 func StopElevatorGood(){
-	if (communication.GetElevatorDirection() == 1){
+	if (queue.GetDirectionElevator() == 1){
 		driver.MoveDown()
 		time.Sleep(10000 * time.Microsecond)
 		driver.Stop()
 	}
-	else if (communication.GetElevatorDirection() == -1){
+	else if (queue.GetDirectionElevator() == -1){
 		driver.MoveUp()
 		time.Sleep(10000 * time.Microsecond)
 		driver.Stop()
