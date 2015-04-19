@@ -6,7 +6,8 @@ import(
 )
 
 var timeOut bool = true
-type timerStartTime time.Time
+var timerStartTime time.Time
+var threeSeconds time.Duration = 3 * time.Second
 /*
 func SetTimeOut(){
 	timeOut = true
@@ -21,12 +22,11 @@ func ResetTimer(){
 
 func CheckTimeOut() bool{
 	if (!timeOut){
-		if (time.Now() - timerStartTime == 3){
+		if (time.Since(timerStartTime) == threeSeconds){
 			timeOut = true
 			return timeOut
 		}
-	}
-	else if (timeOut){
+	}else if (timeOut){
 		return timeOut
 	}
 	return false

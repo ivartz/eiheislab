@@ -1,9 +1,9 @@
 package communication
 
 import(
-	"fmt"
+//	"fmt"
 //	"../src/network"
-	"queue"
+//	"queue"
 )
 
 func SynchronizeOrders(){

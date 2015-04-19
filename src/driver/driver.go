@@ -24,23 +24,23 @@ const BUTTON_COMMAND OrderType = 2
 
 //var buttonChan chan Button // Not needed
 //var floorChan chan int
-var motorChan := make(chan MotorDirection, 1) //Not currently functionality for sending 
+var motorChan = make(chan MotorDirection, 2) //Not currently functionality for sending 
 										// and recieving on this channel on a time instant
 										// Could use threads (goroutines)?
 										// NOTE: Can possibly need a larger buffer! 
 //var stopChan chan bool
 //var obstrChan chan bool
 
-func Initialize() bool{
+func Initialize(nFloors int) bool{
 
 	// Init hardware
-	init = Io_init()
-	if (!init){
-		fmt.Printl("Driver not initialized")
+	init := IoInit()
+	if (init == 0){
+		fmt.Println("Driver not initialized")
 		return false
 	}
 
-	ClearAllOrderLights()
+	ClearAllOrderLights(nFloors)
 	
 	// Clear stop lamp, door open lamp, and set floor indicator to ground floor.
 	ClearStopButtonLight()
@@ -53,31 +53,37 @@ func Initialize() bool{
 
 func MoveUp(){
 	motorChan <- MOVE_UP
+	fmt.Println("driver: MoveUp")
 }
 
 func MoveDown(){
 	motorChan <- MOVE_DOWN
+	fmt.Println("driver: MoveDown")
 }
 
 func Stop(){
 	motorChan <- MOVE_STOP
+	fmt.Println("driver: Stop")
 }
 
 func MotorControl(){
-	dir := <- motorChan
-	if dir == MOVE_UP{
-		Io_clear_bit(MOTORDIR)
-		Io_write_analog(MOTOR, 2800)
-		//MoveUp()
+	var dir MotorDirection
+	if (dir <- motorChan){
+		if dir == MOVE_UP{
+			IoClearBit(MOTORDIR)
+			IoWriteAnalog(MOTOR, 2800)
+			//MoveUp()
+		}else if dir == MOVE_DOWN{
+			IoSetBit(MOTORDIR)
+			IoWriteAnalog(MOTOR, 2800)
+			//MoveDown()
+		}else if dir == MOVE_STOP{
+			IoWriteAnalog(MOTOR, 0)
+			//Stop()
+		}
 	}
-	else if dir == MOVE_DOWN{
-		Io_set_bit(MOTORDIR)
-		Io_write_analog(MOTOR, 2800)
-		//MoveDown()
-	}
-	else if dir == MOVE_STOP{
-		Io_write_analog(MOTOR, 0)
-		//Stop()
+	else{
+		fmt.Println("driver: Nothing on motorChan")
 	}
 
 }
@@ -88,127 +94,147 @@ func GetMotorChan() chan MotorDirection{
 
 
 func SetButtonLight(dir OrderType, floor int){
-	hardware = LocalizeHardware("light", floor, dir)
-	Io_set_bit(hardware)
+	//var hardware OrderType
+	hardware := LocalizeHardware("light", floor, dir)
+	IoSetBit(int(hardware))
 
 /*
 	if (floor == 1 && dir == BUTTON_COMMAND)
-		Io_set_bit(LIGHT_COMMAND1)
+		IoSetBit(LIGHT_COMMAND1)
 	if (floor == 2 && dir == BUTTON_COMMAND)
-		Io_set_bit(LIGHT_COMMAND2)
+		IoSetBit(LIGHT_COMMAND2)
 	if (floor == 3 && dir == BUTTON_COMMAND)
-		Io_set_bit(LIGHT_COMMAND3)
+		IoSetBit(LIGHT_COMMAND3)
 	if (floor == 4 && dir == BUTTON_COMMAND)
-		Io_set_bit(LIGHT_COMMAND4)
+		IoSetBit(LIGHT_COMMAND4)
 
 	if (floor == 1 && dir == BUTTON_CALL_UP)
-		Io_set_bit(LIGHT_UP1)
+		IoSetBit(LIGHT_UP1)
 	if (floor == 2 && dir == BUTTON_CALL_UP)
-		Io_set_bit(LIGHT_UP2)
+		IoSetBit(LIGHT_UP2)
 	if (floor == 3 && dir == BUTTON_CALL_UP)
-		Io_set_bit(LIGHT_UP3)
+		IoSetBit(LIGHT_UP3)
 	
 	if (floor == 2 && dir == BUTTON_CALL_DOWN)
-		Io_set_bit(LIGHT_DOWN2)
+		IoSetBit(LIGHT_DOWN2)
 	if (floor == 3 && dir == BUTTON_CALL_DOWN)
-		Io_set_bit(LIGHT_DOWN3)
+		IoSetBit(LIGHT_DOWN3)
 	if (floor == 4 && dir == BUTTON_CALL_DOWN)
-		Io_set_bit(LIGHT_DOWN4)
+		IoSetBit(LIGHT_DOWN4)
 		*/
 }
 
 func ClearButtonLight(dir OrderType, floor int){
-	hardware = LocalizeHardware("light", floor, dir)
-	Io_clear_bit(hardware)
+	//var hardware OrderType
+	hardware := LocalizeHardware("light", floor, dir)
+	IoClearBit(int(hardware))
 /*
 	if (floor == 1 && dir == BUTTON_COMMAND)
-		Io_clear_bit(LIGHT_COMMAND1)
+		IoClearBit(LIGHT_COMMAND1)
 	if (floor == 2 && dir == BUTTON_COMMAND)
-		Io_clear_bit(LIGHT_COMMAND2)
+		IoClearBit(LIGHT_COMMAND2)
 	if (floor == 3 && dir == BUTTON_COMMAND)
-		Io_clear_bit(LIGHT_COMMAND3)
+		IoClearBit(LIGHT_COMMAND3)
 	if (floor == 4 && dir == BUTTON_COMMAND)
-		Io_clear_bit(LIGHT_COMMAND4)
+		IoClearBit(LIGHT_COMMAND4)
 
 	if (floor == 1 && dir == BUTTON_CALL_UP)
-		Io_clear_bit(LIGHT_UP1)
+		IoClearBit(LIGHT_UP1)
 	if (floor == 2 && dir == BUTTON_CALL_UP)
-		Io_clear_bit(LIGHT_UP2)
+		IoClearBit(LIGHT_UP2)
 	if (floor == 3 && dir == BUTTON_CALL_UP)
-		Io_clear_bit(LIGHT_UP3)
+		IoClearBit(LIGHT_UP3)
 	
 	if (floor == 2 && dir == BUTTON_CALL_DOWN)
-		Io_clear_bit(LIGHT_DOWN2)
+		IoClearBit(LIGHT_DOWN2)
 	if (floor == 3 && dir == BUTTON_CALL_DOWN)
-		Io_clear_bit(LIGHT_DOWN3)
+		IoClearBit(LIGHT_DOWN3)
 	if (floor == 4 && dir == BUTTON_CALL_DOWN)
-		Io_clear_bit(LIGHT_DOWN4)
+		IoClearBit(LIGHT_DOWN4)
 		*/
 }
 
 func CheckButton(dir OrderType, floor int) bool{
-	hardware = LocalizeHardware("button", floor, dir)
-	if Io_read_bit(hardware){
+	//var hardware OrderType
+	hardware := LocalizeHardware("button", floor, dir)
+	if IoReadBit(int(hardware)) != 0{
 		/*var action Button
 		action.Floor = floor
 		action.Dir = dir
 		buttonChan <- action*/
 		return true
-	}
-	else{
+	}else{
 		return false
 	}
 }
 
-func LocalizeHardware(typeof string, floor int, dir OrderType) const int{
+func LocalizeHardware(typeof string, floor int, dir OrderType) OrderType{
+	// Limited to max 4 floors
+	var hardware OrderType
 	if typeof == "button"{
-		if (floor == 1 && dir == BUTTON_COMMAND)
+		if (floor == 1 && dir == BUTTON_COMMAND){
 			hardware = BUTTON_COMMAND1
-		if (floor == 2 && dir == BUTTON_COMMAND)
+		}
+		if (floor == 2 && dir == BUTTON_COMMAND){
 			hardware = BUTTON_COMMAND2
-		if (floor == 3 && dir == BUTTON_COMMAND)
+		}
+		if (floor == 3 && dir == BUTTON_COMMAND){
 			hardware = BUTTON_COMMAND3
-		if (floor == 4 && dir == BUTTON_COMMAND)
+		}
+		if (floor == 4 && dir == BUTTON_COMMAND){
 			hardware = BUTTON_COMMAND4
-
-		if (floor == 1 && dir == BUTTON_CALL_UP)
+		}
+		if (floor == 1 && dir == BUTTON_CALL_UP){
 			hardware = BUTTON_UP1
-		if (floor == 2 && dir == BUTTON_CALL_UP)
+		}
+		if (floor == 2 && dir == BUTTON_CALL_UP){
 			hardware = BUTTON_UP2
-		if (floor == 3 && dir == BUTTON_CALL_UP)
+		}
+		if (floor == 3 && dir == BUTTON_CALL_UP){
 			hardware = BUTTON_UP3
-		
-		if (floor == 2 && dir == BUTTON_CALL_DOWN)
+		}
+		if (floor == 2 && dir == BUTTON_CALL_DOWN){
 			hardware = BUTTON_DOWN2
-		if (floor == 3 && dir == BUTTON_CALL_DOWN)
+		}
+		if (floor == 3 && dir == BUTTON_CALL_DOWN){
 			hardware = BUTTON_DOWN3
-		if (floor == 4 && dir == BUTTON_CALL_DOWN)
+		}
+		if (floor == 4 && dir == BUTTON_CALL_DOWN){
 			hardware = BUTTON_DOWN4
-	}
-
-	else if typeof == "light"{
-		if (floor == 1 && dir == BUTTON_COMMAND)
+		}
+	}else if typeof == "light"{
+		if (floor == 1 && dir == BUTTON_COMMAND){
 			hardware = LIGHT_COMMAND1
-		if (floor == 2 && dir == BUTTON_COMMAND)
+		}
+		if (floor == 2 && dir == BUTTON_COMMAND){
 			hardware = LIGHT_COMMAND2
-		if (floor == 3 && dir == BUTTON_COMMAND)
+		}
+		if (floor == 3 && dir == BUTTON_COMMAND){
 			hardware = LIGHT_COMMAND3
-		if (floor == 4 && dir == BUTTON_COMMAND)
+		}
+		if (floor == 4 && dir == BUTTON_COMMAND){
 			hardware = LIGHT_COMMAND4
+		}
 
-		if (floor == 1 && dir == BUTTON_CALL_UP)
+		if (floor == 1 && dir == BUTTON_CALL_UP){
 			hardware = LIGHT_UP1
-		if (floor == 2 && dir == BUTTON_CALL_UP)
+		}
+		if (floor == 2 && dir == BUTTON_CALL_UP){
 			hardware = LIGHT_UP2
-		if (floor == 3 && dir == BUTTON_CALL_UP)
+		}
+		if (floor == 3 && dir == BUTTON_CALL_UP){
 			hardware = LIGHT_UP3
+		}
 		
-		if (floor == 2 && dir == BUTTON_CALL_DOWN)
+		if (floor == 2 && dir == BUTTON_CALL_DOWN){
 			hardware = LIGHT_DOWN2
-		if (floor == 3 && dir == BUTTON_CALL_DOWN)
+		}
+		if (floor == 3 && dir == BUTTON_CALL_DOWN){
 			hardware = LIGHT_DOWN3
-		if (floor == 4 && dir == BUTTON_CALL_DOWN)
+		}
+		if (floor == 4 && dir == BUTTON_CALL_DOWN){
 			hardware = LIGHT_DOWN4
+		}
 	}
 	return hardware
 }
@@ -223,19 +249,15 @@ func GetButtonChan() chan Button{
 }
 */
 func GetFloorSensorSignal() int{
-	if Io_read_bit(SENSOR_FLOOR1){
+	if IoReadBit(SENSOR_FLOOR1) != 0{
 		return 1
-	}
-	else if Io_read_bit(SENSOR_FLOOR2){
+	}else if IoReadBit(SENSOR_FLOOR2) != 0{
 		return 2
-	}
-	else if Io_read_bit(SENSOR_FLOOR3){
+	}else if IoReadBit(SENSOR_FLOOR3) != 0{
 		return 3
-	}
-	else if Io_read_bit(SENSOR_FLOOR4){
+	}else if IoReadBit(SENSOR_FLOOR4) != 0{
 		return 4
-	}
-	else{
+	}else{
 		return -1
 	}
 }
@@ -243,17 +265,17 @@ func GetFloorSensorSignal() int{
 func SetFloorLight(floor int){
 	switch floor{
 	case 1:
-		Io_clear_bit(LIGHT_FLOOR_IND1)
-		Io_clear_bit(LIGHT_FLOOR_IND2)
+		IoClearBit(LIGHT_FLOOR_IND1)
+		IoClearBit(LIGHT_FLOOR_IND2)
 	case 2:
-		Io_clear_bit(LIGHT_FLOOR_IND1)
-		Io_set_bit(LIGHT_FLOOR_IND2)
+		IoClearBit(LIGHT_FLOOR_IND1)
+		IoSetBit(LIGHT_FLOOR_IND2)
 	case 3:
-		Io_set_bit(LIGHT_FLOOR_IND1)
-		Io_clear_bit(LIGHT_FLOOR_IND2)
+		IoSetBit(LIGHT_FLOOR_IND1)
+		IoClearBit(LIGHT_FLOOR_IND2)
 	case 4:
-		Io_set_bit(LIGHT_FLOOR_IND1)
-		Io_set_bit(LIGHT_FLOOR_IND2)
+		IoSetBit(LIGHT_FLOOR_IND1)
+		IoSetBit(LIGHT_FLOOR_IND2)
 	}
 }
 /*
@@ -267,19 +289,18 @@ func GetFloorChan() chan int{
 }
 */
 func SetStopButtonLight(){
-	Io_set_bit(LIGHT_STOP)
+	IoSetBit(LIGHT_STOP)
 }
 
 func ClearStopButtonLight(){
-	Io_clear_bit(LIGHT_STOP)
+	IoClearBit(LIGHT_STOP)
 }
 
 func CheckStopButton() bool{
-	if Io_read_bit(STOP){
+	if IoReadBit(STOP) != 0{
 		//stopChan <- true
 		return true
-	}
-	else{
+	}else{
 		return false
 	}
 }
@@ -294,11 +315,10 @@ func GetStopChan() chan bool{
 }
 */
 func CheckObstruction()bool{
-	if Io_read_bit(OBSTRUCTION){
+	if IoReadBit(OBSTRUCTION) != 0{
 		//obstrChan <- true
 		return true
-	}
-	else{
+	}else{
 		return false
 	}
 }
@@ -313,17 +333,20 @@ func GetObstructionChan() chan bool{
 }
 */
 func SetDoorLight(){
-	Io_set_bit(LIGHT_DOOR_OPEN)
+	IoSetBit(LIGHT_DOOR_OPEN)
 }
 
 func ClearDoorLight(){
-	Io_clear_bit(LIGHT_DOOR_OPEN)
-}
-
-func CheckDoorLight() bool{
-	return Io_read_bit(LIGHT_DOOR_OPEN)
+	IoClearBit(LIGHT_DOOR_OPEN)
 }
 /*
+func CheckDoorLight() bool{
+	if IoReadBit(LIGHT_DOOR_OPEN) != 0{
+		return true
+	}else{
+		return false
+}
+
 func SetNFloors(floors int){
 	N_FLOORS = floors
 }
@@ -338,7 +361,7 @@ func ClearAllOrderLights(nFloors int){
 		if floor != 1{
 			ClearButtonLight(BUTTON_CALL_DOWN, floor)
 		}
-		if i != nFloors{
+		if floor != nFloors{
 			ClearButtonLight(BUTTON_CALL_UP, floor)
 		}
 		ClearButtonLight(BUTTON_COMMAND, floor)

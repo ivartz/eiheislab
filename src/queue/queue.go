@@ -1,7 +1,7 @@
 package queue
 
 import (
-	"fmt"
+//	"fmt"
 //	"driver"
 //	"communication"
 )
@@ -79,8 +79,8 @@ func AssignNewTask(){
 					task = floor
 					return
 				}
+			}
 		}
-
 	}else if (directionElevator[elevatorNumber - 1] == -1){
 		if (thisFloor == 1){
 			for floor := 1; floor < numberOfFloors; floor++{
@@ -153,6 +153,7 @@ func ShallStop() bool{
 			}
 		}
 	}
+	return false
 }
 
 func ShallRemoveOppositeFloorOrder() bool{
@@ -179,11 +180,12 @@ func ShallRemoveOppositeFloorOrder() bool{
 		if (orderFloorUp[thisFloor - 1]){
 			return true
 		}
-	}	
+	}
+	return false	
 }
 
 func SetCurrentFloor(floor int){
-	floorElevator[elevatorNumber - 1] = int
+	floorElevator[elevatorNumber - 1] = floor
 }
 
 func GetCurrentFloor() int{
@@ -191,17 +193,21 @@ func GetCurrentFloor() int{
 }
 
 func SetDirectionElevator(dir int){
-	directionElevator[elevatorNumber - 1] = int
+	directionElevator[elevatorNumber - 1] = dir
 }
 
 func GetDirectionElevator() int{
 	return directionElevator[elevatorNumber - 1]
 }
 
-func GetNumberOfFloors(){
+func GetElevatorNumber() int{
+	return elevatorNumber
+}
+
+func GetNumberOfFloors() int{
 	return numberOfFloors
 }
 
-func GetElevatorNumber() int{
-	return elevatorNumber
+func GetNumberOfElevators() int{
+	return numberOfElevators
 }

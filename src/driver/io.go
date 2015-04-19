@@ -1,30 +1,34 @@
-package driver
+package driver  // where "driver" is the folder that contains io.go, io.c, io.h, channels.go, channels.c and driver.go
 /*
 #cgo LDFLAGS: -lcomedi -lm
+#cgo CFLAGS: -Wall
 #include "io.h"
 */
 import "C"
 
-func Io_init() bool{
-	return bool(C.io_init())
+//return Non-zero on success, and 0 on failure
+func IoInit() int{
+	retVal := int(C.io_init())
+	return retVal
 }
 
-func Io_set_bit(channel int){
+func IoSetBit(channel int){
 	C.io_set_bit(C.int(channel))
 }
 
-func Io_clear_bit(channel int){
+func IoClearBit(channel int){
 	C.io_clear_bit(C.int(channel))
 }
 
-func Io_write_analog(channel, value int){
+func IoWriteAnalog(channel int, value int){
 	C.io_write_analog(C.int(channel), C.int(value))
 }
 
-func Io_read_bit(channel int) int{
+func IoReadBit(channel int) int{
 	return int(C.io_read_bit(C.int(channel)))
+
 }
 
-func Io_read_analog(channel int) int{
-	return int(C.io_read_channel(C.int(channel)))
-} 
+func IoReadAnalog(channel int) int{
+	return int(C.io_read_analog(C.int(channel)))
+}

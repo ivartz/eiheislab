@@ -6,7 +6,9 @@ export GOPATH=$(pwd)
 
 #go install network
 
-go install driver queue communication states
+go install driver queue states
+
+#go install driver
 
 #go run src/main.go -raddr="129.241.187.153:20021" -lport=20017
 
