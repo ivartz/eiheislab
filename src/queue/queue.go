@@ -30,7 +30,7 @@ func InitializeQueue(){
 	}
 }
 
-func AddFloorOrder(typeOrder int, floorButton int){
+func AddOrder(typeOrder int, floorButton int){
 	if (typeOrder == 0){
 		orderFloorUp[floorButton] = true
 	}else if (typeOrder == 1){
@@ -40,11 +40,23 @@ func AddFloorOrder(typeOrder int, floorButton int){
 	}
 }
 
+func CheckOrder(typeOrder int, floorButton int) bool{
+	if (typeOrder == 0){
+		return orderFloorUp[floorButton - 1]
+	}else if (typeOrder == 1){
+		return orderFloorDown[floorButton - 1]
+	}else if (typeOrder == 2){
+		return orderCommand[floorButton - 1]
+	}else{
+		return false
+	}
+}
+
 func RemoveAllOrders() {
 	InitializeQueue()
 }
 
-func RemoveFloorOrder(typeOrder int, floorButton int){
+func RemoveOrder(typeOrder int, floorButton int){
 	if (typeOrder == 0){
 		orderFloorUp[floorButton] = false
 	}else if (typeOrder == 1){

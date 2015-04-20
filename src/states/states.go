@@ -28,6 +28,9 @@ var floorIndicatorSet int = -1
 // Syncs with elevator stop button on or off
 var elevatorStopButton bool = false
 
+// Is the same button pressed and hold?
+var sameButtonHold bool = false
+
 func EvFloorReached(f int){
 	fmt.Printf("**Floor %v reached**\n", f)
 	
@@ -48,37 +51,37 @@ func EvFloorReached(f int){
 			StopElevatorGood()
 
 			if (f > 1 && f < queue.GetNumberOfFloors()){
-				//queue.RemoveFloorOrder(queue.GetDirectionElevator(), f)
+				//queue.RemoveOrder(queue.GetDirectionElevator(), f)
 
 				if (queue.GetDirectionElevator() == 1){
-					queue.RemoveFloorOrder(0, f)
+					queue.RemoveOrder(0, f)
 					driver.ClearButtonLight(0, f)
 				}else if (queue.GetDirectionElevator() == -1){
-					queue.RemoveFloorOrder(1, f)
+					queue.RemoveOrder(1, f)
 					driver.ClearButtonLight(1, f)
 				}
 				driver.ClearButtonLight(2,f)
 
 				if (queue.ShallRemoveOppositeFloorOrder()){
 					if (queue.GetDirectionElevator() == 1){
-						queue.RemoveFloorOrder(1, f)
+						queue.RemoveOrder(1, f)
 						driver.ClearButtonLight(1, f)
 						driver.ClearButtonLight(2, f)
 					}else if (queue.GetDirectionElevator() == -1){
-						queue.RemoveFloorOrder(0, f)
+						queue.RemoveOrder(0, f)
 						driver.ClearButtonLight(0, f)
 						driver.ClearButtonLight(2, f)						
 					}
 				}
 			}else if (f == 1){
-				queue.RemoveFloorOrder(0, f)
+				queue.RemoveOrder(0, f)
 				driver.ClearButtonLight(0, f)
 				driver.ClearButtonLight(2, f)
 				// Changing direction so that AssignNewTask() quickly can find the best task for the this elevator
 				// Also so that ShallStop() will d
 				queue.SetDirectionElevator(1)
 			}else if (f == queue.GetNumberOfFloors()){
-				queue.RemoveFloorOrder(1, f)
+				queue.RemoveOrder(1, f)
 				driver.ClearButtonLight(1, f)
 				driver.ClearButtonLight(2, f)
 				// Changing direction so that AssignNewTask() quickly can find the best task for the this elevator
@@ -347,8 +350,10 @@ func EvNewOrderInCurrentFloor(){//f int, buttonDirection int){
 		break
 
 	case DOOR_OPEN:
-		ResetTimer()
-		state = DOOR_OPEN
+		if (ClockTick()){
+			ResetTimer()
+			state = DOOR_OPEN			
+		}
 		break
 
 	case STOPPED:
@@ -361,6 +366,7 @@ func EvNewOrderInCurrentFloor(){//f int, buttonDirection int){
 }
 
 func StopElevatorGood(){
+	fmt.Println("driver: StopElevatorGood. Uses MoveUp/MoveDown and Stop")
 	if (queue.GetDirectionElevator() == 1){
 		driver.MoveDown()
 		time.Sleep(10000 * time.Microsecond)
@@ -382,6 +388,7 @@ func SetFloorIndicator(floor int){
 }
 
 func PrintState(){
+	fmt.Println("states: PrintState")
 	if (state == INIT){
 		fmt.Printf("Nåværende tilstand: INIT\n")
 	}

@@ -24,10 +24,11 @@ const BUTTON_COMMAND OrderType = 2
 
 //var buttonChan chan Button // Not needed
 //var floorChan chan int
-var motorChan = make(chan MotorDirection, 2) //Not currently functionality for sending 
+//var motorChan = make(chan MotorDirection) //Not currently functionality for sending 
 										// and recieving on this channel on a time instant
 										// Could use threads (goroutines)?
 										// NOTE: Can possibly need a larger buffer! 
+var directionMotor MotorDirection
 //var stopChan chan bool
 //var obstrChan chan bool
 
@@ -52,20 +53,25 @@ func Initialize(nFloors int) bool{
 
 
 func MoveUp(){
-	motorChan <- MOVE_UP
+	directionMotor = MOVE_UP
 	fmt.Println("driver: MoveUp")
+	IoClearBit(MOTORDIR)
+	IoWriteAnalog(MOTOR, 2800)
 }
 
 func MoveDown(){
-	motorChan <- MOVE_DOWN
+	directionMotor = MOVE_DOWN
 	fmt.Println("driver: MoveDown")
+	IoSetBit(MOTORDIR)
+	IoWriteAnalog(MOTOR, 2800)
 }
 
 func Stop(){
-	motorChan <- MOVE_STOP
+	directionMotor = MOVE_STOP
 	fmt.Println("driver: Stop")
+	IoWriteAnalog(MOTOR, 0)
 }
-
+/*
 func MotorControl(){
 	var dir MotorDirection
 	if (dir <- motorChan){
@@ -91,7 +97,7 @@ func MotorControl(){
 func GetMotorChan() chan MotorDirection{
 	return motorChan
 }
-
+*/
 
 func SetButtonLight(dir OrderType, floor int){
 	//var hardware OrderType
