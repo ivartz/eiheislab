@@ -5,24 +5,46 @@ import(
 	"time"
 )
 
-var timeOut bool = true
-var timerStartTime time.Time
-var threeSeconds time.Duration = 3 * time.Second
+//var timeOut bool = true
+//var timerStartTime time.Time
+//var threeSeconds time.Duration = 3 * time.Second
+
 var tick = make (chan bool)
+
+var timeOut = make(chan bool)
+
 /*
 func SetTimeOut(){
 	timeOut = true
 }
 */
 
+func Timer(){
+	
+}
+
 func ResetTimer(){
-	timerStartTime = time.Now()
+	timer := time.NewTimer(3 * time.Second)
 	fmt.Println("**states: Timer reset/started**")
-	timeOut = false
+	<- timer.C
+	timeOut <- true
+//	timeOut = false
 }
 
 func CheckTimeOut() bool{
-	fmt.Println("states: CheckTimeOut")
+	//fmt.Println("states: CheckTimeOut")
+	select{
+	case <- timeOut:
+		fmt.Printf("states: Timeout = true\n")
+		return true
+	default:
+		//fmt.Printf("states: Timeout = false\n")
+		return false
+	}
+	//return false
+}
+
+	/*
 	if (!timeOut){
 		if (time.Since(timerStartTime) == threeSeconds){
 			timeOut = true
@@ -31,8 +53,10 @@ func CheckTimeOut() bool{
 	}else if (timeOut){
 		return timeOut
 	}
+	fmt.Printf("states: Timeout = %v\n", timeOut)
 	return false
 }
+*/
 /*
 func ClearTimeOut(){
 	timeOut = false

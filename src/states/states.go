@@ -28,9 +28,6 @@ var floorIndicatorSet int = -1
 // Syncs with elevator stop button on or off
 var elevatorStopButton bool = false
 
-// Is the same button pressed and hold?
-var sameButtonHold bool = false
-
 func EvFloorReached(f int){
 	fmt.Printf("**Floor %v reached**\n", f)
 	
@@ -89,7 +86,7 @@ func EvFloorReached(f int){
 			}
 			driver.SetDoorLight()
 			fmt.Println("**Door open**")
-			ResetTimer()
+			go ResetTimer()
 			state = DOOR_OPEN
 		}else if (f == 1){
 			// Changing direction
@@ -134,17 +131,23 @@ func EvTimerOut(){
 	case DOOR_OPEN:
 		driver.ClearDoorLight()
 		fmt.Println("**Timeout, door closed. Assigning new task**")
+		
 		queue.AssignNewTask()
-		if (queue.GetAssignedTask() > queue.GetCurrentFloor()){
-			queue.SetDirectionElevator(1)
-			driver.MoveUp()
-		}else if (queue.GetAssignedTask() < queue.GetCurrentFloor()){
-			queue.SetDirectionElevator(-1)
-			driver.MoveDown()
-		}
+		
 		fmt.Printf("Assigned task is: %v\n", queue.GetAssignedTask())
+		fmt.Printf("Current floor is: %v\n", queue.GetCurrentFloor())
+		queue.PrintQueue()
+		
 		if (queue.GetAssignedTask() != -1){
 			state = MOVING
+			if (queue.GetAssignedTask() > queue.GetCurrentFloor()){
+				queue.SetDirectionElevator(1)
+				driver.MoveUp()
+			}else if (queue.GetAssignedTask() < queue.GetCurrentFloor()){
+				queue.SetDirectionElevator(-1)
+				driver.MoveDown()
+		}
+
 		}else if (queue.GetAssignedTask() == -1){
 			state = IDLE
 		}
@@ -282,7 +285,7 @@ func EvObstructionOff(){
 		break
 
 	case DOOR_OBSTRUCTED:
-		ResetTimer()
+		go ResetTimer()
 		state = DOOR_OPEN
 		break
 
@@ -345,13 +348,13 @@ func EvNewOrderInCurrentFloor(){//f int, buttonDirection int){
 	switch state{
 	case IDLE:
 		driver.SetDoorLight()
-		ResetTimer()
+		go ResetTimer()
 		state = DOOR_OPEN
 		break
 
 	case DOOR_OPEN:
 		if (ClockTick()){
-			ResetTimer()
+			go ResetTimer()
 			state = DOOR_OPEN			
 		}
 		break

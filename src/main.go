@@ -111,6 +111,8 @@ func main(){
 		//fmt.Printf("main: loop part 6\n")
 		
 		HandleObstruction()
+
+		//fmt.Printf("GetCurrentFloor: %v\n", queue.GetCurrentFloor())
 	}
 }
 
@@ -187,10 +189,13 @@ func HandleCommandButtons(){
 			if (queue.GetAssignedTask() == -1 && floor != driver.GetFloorSensorSignal()){
 				states.EvNewOrderInEmptyQueue(floor)
 				queue.AddOrder(2, floor)
+				driver.SetButtonLight(2, floor)
 			}else if (queue.GetAssignedTask() == -1 && floor == driver.GetFloorSensorSignal()){
 				states.EvNewOrderInCurrentFloor()
 			}else{
 				queue.AddOrder(2, floor)
+				driver.SetButtonLight(2, floor)
+
 			}
 		}
 	}
@@ -217,7 +222,7 @@ func HandleStopButton(){
 
 func HandleTimeOut(){
 	// Time out signal check
-	if (states.CheckTimeOut() && !driver.CheckObstruction() && states.ClockTick()){
+	if (states.CheckTimeOut() && !driver.CheckObstruction()){
 		states.EvTimerOut()
 	}
 }
