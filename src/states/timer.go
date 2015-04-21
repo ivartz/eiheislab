@@ -24,8 +24,8 @@ func Timer(){
 }
 
 func ResetTimer(){
+	fmt.Println("**states: Timer reset/started**"
 	timer := time.NewTimer(3 * time.Second)
-	fmt.Println("**states: Timer reset/started**")
 	<- timer.C
 	timeOut <- true
 //	timeOut = false

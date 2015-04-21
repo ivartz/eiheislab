@@ -131,6 +131,7 @@ func EvTimerOut(){
 	case DOOR_OPEN:
 		driver.ClearDoorLight()
 		fmt.Println("**Timeout, door closed. Assigning new task**")
+		fmt.Printf("Direction for correct AssignNewTask(): %v\n", queue.GetDirectionElevator())
 		
 		queue.AssignNewTask()
 		

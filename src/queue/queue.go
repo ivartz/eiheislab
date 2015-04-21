@@ -69,6 +69,8 @@ func AssignNewTask(){
 
 	thisFloor := GetCurrentFloor()
 
+	fmt.Println("queue: AssignNewTask()")
+
 	if (GetDirectionElevator() == 1){
 		if (thisFloor == numberOfFloors){
 			for floor := numberOfFloors - 2; floor > -1; floor--{
@@ -86,7 +88,7 @@ func AssignNewTask(){
 			} 
 		}
 		if (thisFloor != 1){
-			for floor := thisFloor - 2; floor < -1; floor--{
+			for floor := thisFloor - 2; floor > -1; floor--{
 				if (orderFloorDown[floor] || orderFloorUp[floor] || orderCommand[floor]){
 					task = floor + 1
 					return
@@ -102,7 +104,7 @@ func AssignNewTask(){
 				}
 			}
 		}else{
-			for floor := thisFloor - 2; floor < -1; floor--{
+			for floor := thisFloor - 2; floor > -1; floor--{
 				if (orderFloorDown[floor] || orderFloorUp[floor] || orderCommand[floor]){
 					task = floor + 1
 					return
@@ -118,6 +120,14 @@ func AssignNewTask(){
 			}
 		}	
 	}
+	// No task was found, queue is empty
+	for floor := 0; floor < numberOfFloors; floor++{
+		if (orderFloorUp[floor] || orderFloorDown[floor] || orderCommand[floor]){
+			return
+		}
+	}
+	fmt.Println("queue: AssignNewTask(), no order in queue")
+	task = -1
 }
 
 func GetAssignedTask() int{
