@@ -10,18 +10,9 @@ import (
 	"queue"
 	//"encoding/json"
 )
-//test
 
 var BroadcastIP string = "129.241.255.255"
 var BroadcastPort int = 30500
-
-// The message form is a struct. Capital letter because the struct is used outside network.go
-// This struct is ent in send_ch and receive_ch
-type Tcp_message struct{
-	Raddr string
-	Data string 
-	Length int
-}
 
 //type tcp_conn struct {
 //	conn *net.TCPConn
@@ -110,7 +101,7 @@ func tcp_transmit_server (s_ch chan Tcp_message){
 			err := errors.New("communication: tcp_transmit_server: Failed to add newConn to conn_list map")
 			panic(err)
 		} else {
-			n, err := sendConn.Write([]byte(msg.Data))	
+			n, err := sendConn.Write(msg.Data)	
 			conn_list_mutex.Unlock()
 			if err != nil || n < 0 {
 				fmt.Printf("communication: tcp_transmit_server: Write error (deleting remote address): %s\n",err)
@@ -154,7 +145,7 @@ func tcp_handle_server (listener *net.TCPListener, r_ch chan Tcp_message){
 						conn_list_mutex.Unlock()
 						return 
 					} else {
-						r_ch <- Tcp_message{Raddr: raddr, Data: string(buf), Length: n}
+						r_ch <- Tcp_message{Raddr: raddr, Data: buf, Length: n}
 					}
 			}		
 		}(raddr.String(), newConn, r_ch)
