@@ -13,6 +13,8 @@ var tick = make (chan bool)
 
 var timeOut = make(chan bool)
 
+var quitResetTimer = make(chan bool)
+
 /*
 func SetTimeOut(){
 	timeOut = true
@@ -24,18 +26,21 @@ func Timer(){
 }
 
 func ResetTimer(){
-	fmt.Println("**states: Timer reset/started**"
+	fmt.Println("states: Timer reset/started**")
 	timer := time.NewTimer(3 * time.Second)
-	<- timer.C
-	timeOut <- true
-//	timeOut = false
+	select{
+	case <- timer.C:
+		timeOut <- true
+	case <- quitResetTimer:
+		return
+	}
 }
 
 func CheckTimeOut() bool{
 	//fmt.Println("states: CheckTimeOut")
 	select{
 	case <- timeOut:
-		fmt.Printf("states: Timeout = true\n")
+		fmt.Printf("states: Timeout!\n")
 		return true
 	default:
 		//fmt.Printf("states: Timeout = false\n")
@@ -63,19 +68,23 @@ func ClearTimeOut(){
 }
 */
 func PrintCurrentTime(){
-	fmt.Printf("Time: %v\n", time.Now())
+	fmt.Printf("states: Time: %v\n", time.Now())
 }
 
 func Clock(){
 	for{
 		tick <- true
 		time.Sleep(500 * time.Millisecond)
-		tick <- false
-		time.Sleep(500 * time.Millisecond)
+		//tick <- false
+		//time.Sleep(200 * time.Millisecond)
 	}
 }
 
-func ClockTick() bool{
-	tickvar := <- tick
-	return tickvar
+func Tick() bool{
+	select{
+	case <- tick:
+		return true
+	default:
+		return false
+	}
 }

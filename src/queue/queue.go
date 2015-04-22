@@ -13,28 +13,28 @@ const numberOfElevators int = 3
 var task int = -1
 
 // Must be synchronized
-var floorElevator = make([]int, numberOfElevators)
-var directionElevator = make([]int, numberOfElevators)
+var FloorElevator = make([]int, numberOfElevators)
+var DirectionElevator = make([]int, numberOfElevators)
 
-var orderFloorUp = make([]bool, numberOfFloors)
-var orderFloorDown = make([]bool, numberOfFloors)
+var OrderFloorUp = make([]bool, numberOfFloors)
+var OrderFloorDown = make([]bool, numberOfFloors)
 
 // Not synchronized
 var orderCommand = make([]bool, numberOfFloors)
 
 func InitializeQueue(){
 	for floor := 0; floor < numberOfFloors; floor++{
-		orderFloorUp[floor] = false
-		orderFloorDown[floor] = false
+		OrderFloorUp[floor] = false
+		OrderFloorDown[floor] = false
 		orderCommand[floor] = false
 	}
 }
 
 func AddOrder(typeOrder int, floorButton int){
 	if (typeOrder == 0){
-		orderFloorUp[floorButton - 1] = true
+		OrderFloorUp[floorButton - 1] = true
 	}else if (typeOrder == 1){
-		orderFloorDown[floorButton - 1] = true
+		OrderFloorDown[floorButton - 1] = true
 	}else if (typeOrder == 2){
 		orderCommand[floorButton -1] = true
 	}
@@ -42,9 +42,9 @@ func AddOrder(typeOrder int, floorButton int){
 
 func CheckOrder(typeOrder int, floorButton int) bool{
 	if (typeOrder == 0){
-		return orderFloorUp[floorButton - 1]
+		return OrderFloorUp[floorButton - 1]
 	}else if (typeOrder == 1){
-		return orderFloorDown[floorButton - 1]
+		return OrderFloorDown[floorButton - 1]
 	}else if (typeOrder == 2){
 		return orderCommand[floorButton - 1]
 	}else{
@@ -58,9 +58,9 @@ func RemoveAllOrders() {
 
 func RemoveOrder(typeOrder int, floorButton int){
 	if (typeOrder == 0){
-		orderFloorUp[floorButton - 1] = false
+		OrderFloorUp[floorButton - 1] = false
 	}else if (typeOrder == 1){
-		orderFloorDown[floorButton - 1] = false
+		OrderFloorDown[floorButton - 1] = false
 	}
 	orderCommand[floorButton - 1] = false
 }
@@ -74,14 +74,14 @@ func AssignNewTask(){
 	if (GetDirectionElevator() == 1){
 		if (thisFloor == numberOfFloors){
 			for floor := numberOfFloors - 2; floor > -1; floor--{
-				if (orderFloorUp[floor] || orderFloorDown[floor] || orderCommand[floor]){
+				if (OrderFloorUp[floor] || OrderFloorDown[floor] || orderCommand[floor]){
 					task = floor + 1
 					return
 				}
 			}
 		}else{
 			for floor := thisFloor; floor < numberOfFloors; floor++{
-				if (orderFloorUp[floor] || orderFloorDown[floor] || orderCommand[floor]){
+				if (OrderFloorUp[floor] || OrderFloorDown[floor] || orderCommand[floor]){
 					task = floor + 1
 					return
 				}
@@ -89,7 +89,7 @@ func AssignNewTask(){
 		}
 		if (thisFloor != 1){
 			for floor := thisFloor - 2; floor > -1; floor--{
-				if (orderFloorDown[floor] || orderFloorUp[floor] || orderCommand[floor]){
+				if (OrderFloorDown[floor] || OrderFloorUp[floor] || orderCommand[floor]){
 					task = floor + 1
 					return
 				}
@@ -98,14 +98,14 @@ func AssignNewTask(){
 	}else if (GetDirectionElevator() == -1){
 		if (thisFloor == 1){
 			for floor := 1; floor < numberOfFloors; floor++{
-				if (orderFloorUp[floor] || orderFloorDown[floor] || orderCommand[floor]){
+				if (OrderFloorUp[floor] || OrderFloorDown[floor] || orderCommand[floor]){
 					task = floor + 1
 					return
 				}
 			}
 		}else{
 			for floor := thisFloor - 2; floor > -1; floor--{
-				if (orderFloorDown[floor] || orderFloorUp[floor] || orderCommand[floor]){
+				if (OrderFloorDown[floor] || OrderFloorUp[floor] || orderCommand[floor]){
 					task = floor + 1
 					return
 				}
@@ -113,7 +113,7 @@ func AssignNewTask(){
 		}
 		if (thisFloor != numberOfFloors){
 			for floor := thisFloor; floor < numberOfFloors; floor++{
-				if (orderFloorUp[floor] || orderFloorDown[floor] || orderCommand[floor]){
+				if (OrderFloorUp[floor] || OrderFloorDown[floor] || orderCommand[floor]){
 					task = floor + 1
 					return
 				}
@@ -122,7 +122,8 @@ func AssignNewTask(){
 	}
 	// No task was found, queue is empty
 	for floor := 0; floor < numberOfFloors; floor++{
-		if (orderFloorUp[floor] || orderFloorDown[floor] || orderCommand[floor]){
+		if (OrderFloorUp[floor] || OrderFloorDown[floor] || orderCommand[floor]){
+			task = floor + 1
 			return
 		}
 	}
@@ -142,39 +143,39 @@ func ShallStop() bool{
 		return true
 	}
 	if (GetDirectionElevator() == 1){
-		if orderFloorUp[thisFloor - 1]{
+		if OrderFloorUp[thisFloor - 1]{
 			return true
 		}
 		if (thisFloor == numberOfFloors){
-			if (orderFloorDown[thisFloor - 1]){
+			if (OrderFloorDown[thisFloor - 1]){
 				return true
 			}
 		}else{
 			for floor := thisFloor; floor < numberOfFloors; floor++{
-				if (orderFloorUp[floor] || orderFloorDown[floor] || orderCommand[floor]){
+				if (OrderFloorUp[floor] || OrderFloorDown[floor] || orderCommand[floor]){
 					return false
 				}
 			}
-			if (orderFloorDown[thisFloor - 1]){
+			if (OrderFloorDown[thisFloor - 1]){
 			return true
 			}
 		}
 
 	}else if (GetDirectionElevator() == -1){
-		if orderFloorDown[thisFloor - 1]{
+		if OrderFloorDown[thisFloor - 1]{
 			return true
 		}
 		if (thisFloor == 1){
-			if (orderFloorUp[thisFloor - 1]){
+			if (OrderFloorUp[thisFloor - 1]){
 				return true
 			}
 		}else{
 			for floor := thisFloor - 2; floor > -1; floor--{
-				if orderFloorUp[floor] || orderFloorDown[floor] || orderCommand[floor]{
+				if OrderFloorUp[floor] || OrderFloorDown[floor] || orderCommand[floor]{
 					return false
 				}
 			}
-			if (orderFloorUp[thisFloor -1]){
+			if (OrderFloorUp[thisFloor -1]){
 				return true
 			}
 		}
@@ -185,25 +186,25 @@ func ShallStop() bool{
 func ShallRemoveOppositeFloorOrder() bool{
 	// Assuming this function is not called on first and last floor!
 
-	thisFloor := floorElevator[elevatorNumber - 1]
+	thisFloor := FloorElevator[elevatorNumber - 1]
 
-	if (directionElevator[elevatorNumber - 1] == 1){
+	if (DirectionElevator[elevatorNumber - 1] == 1){
 		for floor := thisFloor; floor < numberOfFloors; floor++{
-			if (orderFloorUp[floor] || orderFloorDown[floor] || orderCommand[floor]){
+			if (OrderFloorUp[floor] || OrderFloorDown[floor] || orderCommand[floor]){
 				return false
 			}
 		}
-		if (orderFloorDown[thisFloor - 1]){
+		if (OrderFloorDown[thisFloor - 1]){
 			return true
 		}
 
-	}else if (directionElevator[elevatorNumber - 1] == -1){
+	}else if (DirectionElevator[elevatorNumber - 1] == -1){
 		for floor := thisFloor - 2; floor > -1; floor--{
-			if (orderFloorUp[floor] || orderFloorDown[floor] || orderCommand[floor]){
+			if (OrderFloorUp[floor] || OrderFloorDown[floor] || orderCommand[floor]){
 				return false
 			} 
 		}
-		if (orderFloorUp[thisFloor - 1]){
+		if (OrderFloorUp[thisFloor - 1]){
 			return true
 		}
 	}
@@ -211,19 +212,19 @@ func ShallRemoveOppositeFloorOrder() bool{
 }
 
 func SetCurrentFloor(floor int){
-	floorElevator[elevatorNumber - 1] = floor
+	FloorElevator[elevatorNumber - 1] = floor
 }
 
 func GetCurrentFloor() int{
-	return floorElevator[elevatorNumber - 1]
+	return FloorElevator[elevatorNumber - 1]
 }
 
 func SetDirectionElevator(dir int){
-	directionElevator[elevatorNumber - 1] = dir
+	DirectionElevator[elevatorNumber - 1] = dir
 }
 
 func GetDirectionElevator() int{
-	return directionElevator[elevatorNumber - 1]
+	return DirectionElevator[elevatorNumber - 1]
 }
 
 func GetElevatorNumber() int{
@@ -240,7 +241,16 @@ func GetNumberOfElevators() int{
 
 func PrintQueue(){
 	fmt.Println("F | C\t\t| FUP\t| FDOWN\t")
-	for floor := 0; floor < numberOfFloors; floor++{
-		fmt.Printf("%v | %v\t| %v\t| %v\n", floor + 1, orderCommand[floor], orderFloorUp[floor], orderFloorDown[floor])
+	for floor := numberOfFloors - 1; floor > -1; floor--{
+		fmt.Printf("%v | %v\t| %v\t| %v\n", floor + 1, orderCommand[floor], OrderFloorUp[floor], OrderFloorDown[floor])
 	}
+}
+
+func IsEmpty() bool{
+	for index := 0; index < numberOfFloors; index++{
+		if (OrderFloorUp[index] || OrderFloorDown[index] || orderCommand[index] ){
+			return false
+		}
+	}
+	return true
 }

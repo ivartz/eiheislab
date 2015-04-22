@@ -37,7 +37,7 @@ func Initialize(nFloors int) bool{
 	// Init hardware
 	init := IoInit()
 	if (init == 0){
-		fmt.Println("Driver not initialized")
+		fmt.Println("driver: Driver not initialized")
 		return false
 	}
 

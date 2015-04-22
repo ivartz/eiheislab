@@ -1,4 +1,4 @@
-package network
+package communication
 
 import (
 	"fmt"
@@ -7,6 +7,7 @@ import (
 	"time"
 	"errors"
 	"sync"
+	"queue"
 	//"encoding/json"
 )
 //test
@@ -83,7 +84,7 @@ func TCPServerInit(localListenPort int, send_ch, receive_ch chan Tcp_message) er
 		fmt.Println("communication: TCPServerInit: Failed to initialize ListenTCP")
 		return err
 	}
-	fmt.Printf("communication: TCPServerInit: Now listening on %v\n", laddr)
+	fmt.Printf("communication: TCPServerInit: Elevator %v with is now listening on %v, its local ip and listening port\n", queue.GetElevatorNumber(), laddr)
 
 	// Goroutine to handle all incoming messages from send_ch. Establishing additional tcp connection if necessary (adding to conn_list) 
 	go tcp_transmit_server(send_ch)

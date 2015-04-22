@@ -18,7 +18,7 @@ var lport = flag.Int("lport", 20017, "the local port to listen on for new conns"
 
 func main (){
 	flag.Parse()
-	fmt.Println("----This is a test on sending and receiving tcp messages between two hosts using the network module----")
+	fmt.Println("main: This is a test on sending and receiving tcp messages between two hosts using the network module")
 	rchan := make (chan network.Tcp_message)
 	schan := make (chan network.Tcp_message)
 	network.TCPServerInit(*lport, schan, rchan)
