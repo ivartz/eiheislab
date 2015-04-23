@@ -21,7 +21,7 @@ var receiveChan = make (chan Tcp_message)
 var sendChan = make (chan Tcp_message)
 
 // unjsoned data
-var msg struct{
+type msg struct{
 	MType string
 	
 	ENumber int
@@ -39,15 +39,18 @@ func Initialize() bool{
 
 	TCPServerInit(elevPorts[queue.GetElevatorNumber() - 1], sendChan, receiveChan)
 
+	go HandleOutgoingMessages()
+	go HandleIncomingMessages()
+
 	return true
 }
 
 
 func NotifyTheOthers(mtype string, floor int, set bool, dir int){
-	if (ntype == "OU" || mtype == "OD" || mtype == "F" || mtype == "D"){
+	if (mtype == "OU" || mtype == "OD" || mtype == "F" || mtype == "D"){
 		temp := msg{mtype, queue.GetElevatorNumber(), floor, set, dir}
 		select{
-		case sendToAllChan <- temp:
+		case sendToAllOthersChan <- temp:
 		default:
 			fmt.Println("communication: ERROR: Notify failed. NotifyTheOthers() can't send message because sendToAllOthersChan is busy")	
 		}
@@ -58,36 +61,42 @@ func NotifyTheOthers(mtype string, floor int, set bool, dir int){
 
 
 // Run as goroutine
-func HandleOutgoingMessages(){
+func HandleOutgoingMessages() error{
 	fmt.Println("communication: HandleOutgoingMessages() goroutine started")
-	for temp := sendToAllChan{
+	for temp := range sendToAllOthersChan{
 		jtemp, err := json.Marshal(temp)
 		if err != nil{
-			fmt.Println("communication: json.Marshal() error!")
+			fmt.Println("communication: json.Marshal() error! HandleOutgoingMessages() goroutine ending")
+			return err
 		}
 		for i := range elevIpAddresses{
 			if i + 1 != queue.GetElevatorNumber(){
 				tcpm := Tcp_message{elevIpAddresses[i]+":"+strconv.Itoa(elevPorts[i]), jtemp, len(jtemp)}
-				sendChan <- tcmp		
+				sendChan <- tcpm		
 			}
 		}	
 	}
+	var r error = fmt.Errorf("communication: ERROR: HandleOutgoingMessages() has quit range over sendToAllOthersChan!")
+
+	return r
 }
 
-func HandleIncomingMessages(){
+func HandleIncomingMessages() error{
 	// Updates the local elevators OU,OD,FE,DE arrays according to incoming messages 
 	fmt.Println("communication: HandleIncomingMessages() goroutine started")
-	var m Msg
+	var m msg
 	for temp := range receiveChan{
-		err := json.Unmarshal(temp, &m)
+		err := json.Unmarshal(temp.Data, &m)
 		if err != nil{
-			fmt.Println("communication: json.Unmarshal() error!")
+			fmt.Println("communication: json.Unmarshal() error! HandleIncomingMessages() goroutine ending")
 			return err
 		}else if m.MType == "OU"{
 			queue.OrderFloorUp[m.Floor - 1] = m.Set
+			
 			fmt.Printf("communication: Remote floor order up-button to %v\n", m.Floor)
 		}else if m.MType == "UD"{
 			queue.OrderFloorDown[m.Floor - 1] = m.Set
+			
 			fmt.Printf("communication: Remote floor order down-button to %v\n", m.Floor)
 		}else if m.MType == "F"{
 			queue.FloorElevator[m.ENumber - 1] = m.Floor
@@ -95,9 +104,11 @@ func HandleIncomingMessages(){
 		}else if m.MType == "D"{
 			queue.DirectionElevator[m.ENumber - 1] = m.Dir
 			fmt.Printf("communication: Remote elevator direction; elevator %v set its direction to %v\n", m.ENumber, m.Dir)
-		}
-		else{
+		}else{
 			fmt.Println("communication: HandleIncomingMessages() received and unjsoned a message with unknown MType. Something is wrong with HandleIncomingMessages()")
+			return err
 		}
 	}
+	var r error = fmt.Errorf("communication: ERROR: HandleIncomingMessages() has quit range over receiveChan!")
+	return r
 }
