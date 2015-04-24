@@ -1,7 +1,5 @@
 package driver  // where "driver" is the folder that contains io.go, io.c, io.h, channels.go, channels.c and driver.go
 
-import "fmt"
-
 /*
 #cgo LDFLAGS: -lcomedi -lm
 #cgo CFLAGS: -Wall
@@ -16,7 +14,7 @@ func IoInit() int{
 }
 
 func IoSetBit(channel int){
-	fmt.Printf("driver: IoSetBit on channel: %v\n", channel)
+	//fmt.Printf("driver: IoSetBit on channel: %v\n", channel)
 	C.io_set_bit(C.int(channel))
 }
 

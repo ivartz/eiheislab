@@ -2,7 +2,7 @@ package communication
 
 import(
 	"fmt"
-	"strconv"
+//	"strconv"
 	"encoding/json"
 	"queue"
 	"driver"
@@ -67,7 +67,7 @@ func NotifyTheOthers(mtype string, floor int, set bool, dir int){
 		select{
 		case sendToAllOthersChan <- temp:
 		default:
-			fmt.Println("communication: ERROR: ************************************NotifyTheOthers() can't send message because sendToAllOthersChan is BLOCKED!")	
+			fmt.Println("communication: NotifyTheOthers(): ERROR: Can't send msg into --> sendToAllOthersChan <-- because it is BLOCKED!!")	
 		}
 	}else{
 		fmt.Println("communication: ERROR: Can't NotifyTheOthers(), invalid string argument")
@@ -78,6 +78,18 @@ func NotifyTheOthers(mtype string, floor int, set bool, dir int){
 // Run as goroutine
 func HandleOutgoingMessages() error{
 	fmt.Println("communication: HandleOutgoingMessages() goroutine started")
+	
+	// Testing
+	for{
+		select{
+		case temp := <- sendToAllOthersChan:
+			fmt.Println(temp)
+		}
+	}
+
+ 	// working here
+
+	/*
 	for temp := range sendToAllOthersChan{
 		fmt.Println("communication: HandleOutgoingMessages(): New message to send to the other elevators!")
 		jtemp, err := json.Marshal(temp)
@@ -85,6 +97,7 @@ func HandleOutgoingMessages() error{
 			fmt.Println("communication: json.Marshal() error! HandleOutgoingMessages() goroutine ending")
 			return err
 		}
+		
 		for i := range elevIpAddresses{
 			if i + 1 != queue.GetElevatorNumber(){
 				tcpm := Tcp_message{elevIpAddresses[i]+":"+strconv.Itoa(elevPorts[i]), jtemp, len(jtemp)}
@@ -93,13 +106,15 @@ func HandleOutgoingMessages() error{
 				case sendChan <- tcpm:
 					fmt.Println("communication: HandleOutgoingMessages(): Tcp_message was sent into sendChan!")		
 				default:
-					fmt.Println("communication: ERROR: ******************************HandleOutgoingMessages() can't send Tcp_message into sendChan because sendChan is BLOCKED!")		
+					fmt.Println("communication: HandleOutgoingMessages(): ERROR: Can't send Tcp_message into --> sendChan <-- because it is BLOCKED!!")		
 				}
 				
 			}
 		}
-		time.Sleep(10 * time.Millisecond)	
+		//time.Sleep(10 * time.Millisecond) // sjekk mer!	
 	}
+	*/
+
 	r := fmt.Errorf("communication: ERROR: HandleOutgoingMessages() has quit range over sendToAllOthersChan!")
 
 	return r
@@ -161,7 +176,7 @@ func HandleIncomingMessages() error{
 			select{
 			case ENOEQChan <- enoeqmsg:
 			default:
-				fmt.Println("communication: ERROR: *****************************************ENOEQChan blocked!")
+				fmt.Println("communication: HandleIncomingMessages(): ERROR: Can't send msg into --> ENOEQChan <-- because it is BLOCKED!!")
 			}
 			//fmt.Printf("communication: This best fit elevator to take order to floor %v was remote started from IDLE\n", m.Floor)
 		}else{

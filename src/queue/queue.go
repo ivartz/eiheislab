@@ -7,7 +7,7 @@ import (
 )
 
 // Unique for each elevator
-const elevatorNumber int = 2
+const elevatorNumber int = 1
 
 const numberOfFloors int = 4
 
@@ -47,7 +47,7 @@ func InitializeFloorsAndDirections(){
 }
 
 func AddOrder(typeOrder int, floorButton int){
-	fmt.Println("queue: AddOrder() was called")
+	fmt.Printf("queue: AddOrder(): Called with typeOrder = %v and floorButton = %v\n", typeOrder, floorButton)
 	if (typeOrder == 0){
 		OrderFloorUp[floorButton - 1] = true
 	}else if (typeOrder == 1){
@@ -74,7 +74,7 @@ func RemoveAllOrders() {
 }
 
 func RemoveOrder(typeOrder int, floorButton int){
-	fmt.Println("queue: RemoveOrder() was called")
+	fmt.Println("queue: RemoveOrder(): Called")
 	if (typeOrder == 0){
 		OrderFloorUp[floorButton - 1] = false
 	}else if (typeOrder == 1){
@@ -87,7 +87,7 @@ func AssignNewTask(){
 
 	thisFloor := GetCurrentFloor()
 
-	fmt.Println("queue: AssignNewTask()")
+	fmt.Println("queue: AssignNewTask(): Called")
 
 	if (GetDirectionElevator() == 1){
 		if (thisFloor == numberOfFloors){
@@ -145,7 +145,7 @@ func AssignNewTask(){
 			return
 		}
 	}
-	fmt.Println("queue: AssignNewTask(), no order in queue")
+	fmt.Println("queue: AssignNewTask(): No order in queue. Setting task to -1")
 	task = -1
 }
 
@@ -230,7 +230,7 @@ func ShallRemoveOppositeFloorOrder() bool{
 }
 
 func SetCurrentFloor(floor int){
-	fmt.Println("queue: SetCurrentFloor() was called")
+	fmt.Printf("queue: SetCurrentFloor(): Called to set floor = %v on this elevator (%v)\n", floor, GetElevatorNumber())
 	FloorElevator[elevatorNumber - 1] = floor
 }
 
@@ -239,7 +239,7 @@ func GetCurrentFloor() int{
 }
 
 func SetDirectionElevator(dir int){
-	fmt.Printf("queue: SetDirectionElevator(%v) was called\n", dir)
+	fmt.Printf("queue: SetDirectionElevator(): Called to set dir = %v on this elevator (%v)\n", dir, GetElevatorNumber())
 	DirectionElevator[elevatorNumber - 1] = dir
 }
 
@@ -260,10 +260,12 @@ func GetNumberOfElevators() int{
 }
 
 func PrintQueue(){
+	fmt.Println("****************************************")
 	fmt.Println("F | C\t\t| FUP\t| FDOWN\t")
 	for floor := numberOfFloors - 1; floor > -1; floor--{
 		fmt.Printf("%v | %v\t| %v\t| %v\n", floor + 1, orderCommand[floor], OrderFloorUp[floor], OrderFloorDown[floor])
 	}
+	fmt.Println("****************************************")
 }
 
 func IsEmpty() bool{
@@ -277,7 +279,7 @@ func IsEmpty() bool{
 
 //NB! DENNE FUNGERER IKKE FULLSTENDIG UT!!
 func IsClosest(floor int) int{
-	fmt.Println("queue: IsClosest() was called")
+	fmt.Println("queue: IsClosest(): Called")
 	diff := numberOfFloors
 	elev := elevatorNumber
 	for index := range FloorElevator{
@@ -292,6 +294,6 @@ func IsClosest(floor int) int{
 			}		
 		}
 	}
-	fmt.Printf("queue: IsClosest(): Elevator %v was closest\n", elev)
+	fmt.Printf("queue: IsClosest(): Elevator %v is closest to floor %v\n", elev, floor)
 	return elev
 }

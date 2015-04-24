@@ -10,7 +10,7 @@ var timeOut = make(chan bool)
 var quitResetTimer = make(chan bool)
 
 func ResetTimer(){
-	fmt.Println("states: Timer reset/started**")
+	fmt.Println("states: ResetTimer(): Timer reset/started")
 	timer := time.NewTimer(3 * time.Second)
 	select{
 	case <- timer.C:
@@ -23,7 +23,7 @@ func ResetTimer(){
 func CheckTimeOut() bool{
 	select{
 	case <- timeOut:
-		fmt.Printf("states: Timeout!\n")
+		fmt.Printf("states: CheckTimeOut(): Timeout!\n")
 		return true
 	default:
 
@@ -32,21 +32,5 @@ func CheckTimeOut() bool{
 }
 
 func PrintCurrentTime(){
-	fmt.Printf("states: Time: %v\n", time.Now())
-}
-
-func Clock(){
-	for{
-		tick <- true
-		time.Sleep(100 * time.Millisecond)
-	}
-}
-
-func Tick() bool{
-	select{
-	case <- tick:
-		return true
-	default:
-		return false
-	}
+	fmt.Printf("states: Time: PrintCurrentTime(): %v\n", time.Now())
 }

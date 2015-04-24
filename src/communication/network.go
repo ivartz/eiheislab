@@ -37,7 +37,7 @@ func TCPServerInit(localListenPort int, send_ch, receive_ch chan Tcp_message) er
 	baddr, err := net.ResolveUDPAddr("udp4", BroadcastIP+":"+strconv.Itoa(BroadcastPort)) // Itoa for string representation of integer
 	
 	if err != nil {
-		fmt.Println("communication: TCPServerInit: Could not resolve baddr")
+		fmt.Println("communication: TCPServerInit: ERROR: Could not resolve baddr")
 		return err
 	}
 
@@ -88,7 +88,7 @@ func tcp_transmit_server (s_ch chan Tcp_message){
 		if (ok != true ){
 			// NB! This blocks s_ch (sendChan) because of reconnect for-loop. Not any more, removed for-loop!
 			if !new_tcp_conn(msg.Raddr){
-				fmt.Println("communication: tcp_transmit_server: Could not establish new tcp connection after two tries.\n               Consequence: Remote elevator must be disconnected and will not receive the messages. Listening for next outgoing message to arrive on sendChan.")
+				fmt.Println("communication: tcp_transmit_server: ERROR: Could not establish new tcp connection after two tries.\n               Consequence: Remote elevator must be disconnected and will not receive the messages.\n                            Listening for next outgoing message to arrive on sendChan.")
 				continue
 			}	
 		}
@@ -148,7 +148,7 @@ func tcp_handle_server (listener *net.TCPListener, r_ch chan Tcp_message){
 						case r_ch <- Tcp_message{Raddr: raddr, Data: buf, Length: n}:
 							fmt.Println("communication: tcp_handle_server: Sent received Tcp_message into receiveChan")
 						default:
-							fmt.Println("communication: tcp_handle_server: *********************************************************ERROR: receiveChan is BLOCKED!!!! \n")
+							fmt.Println("communication: tcp_handle_server: ERROR: receiveChan is BLOCKED!!\n")
 						}
 						//r_ch <- Tcp_message{Raddr: raddr, Data: buf, Length: n}
 					}

@@ -9,7 +9,6 @@ const MOVE_UP MotorDirection = 1
 const MOVE_DOWN MotorDirection = -1
 const MOVE_STOP MotorDirection = 0
 
-
 type Button struct{
 	Floor int
 	Dir OrderType
@@ -18,29 +17,23 @@ type Button struct{
 const BUTTON_CALL_UP OrderType = 0
 const BUTTON_CALL_DOWN OrderType = 1
 const BUTTON_COMMAND OrderType = 2
-const BUTTON_PRESSED OrderType = 3
 
 var directionMotor MotorDirection
 
 func Initialize(nFloors int) bool{
 
-	// Init hardware
 	init := IoInit()
 	if (init == 0){
-		fmt.Println("driver: Driver not initialized")
+		fmt.Println("driver: IO Driver not initialized")
 		return false
 	}
-
 	ClearAllOrderLights(nFloors)
-	
-	// Clear stop lamp, door open lamp, and set floor indicator to ground floor.
 	ClearStopButtonLight()
 	ClearDoorLight()
 	SetFloorLight(1)
 
 	return true
 }
-
 
 func MoveUp(){
 	directionMotor = MOVE_UP
@@ -76,9 +69,9 @@ func ClearButtonLight(dir OrderType, floor int){
 
 func CheckButton(t OrderType, floor int) bool{
 	//var hardware OrderType
-	if t == BUTTON_PRESSED{
+	/*if t == BUTTON_RELEASED{
 		return false
-	} 
+	}*/ 
 	hardware := LocalizeHardware("button", floor, t)
 	if IoReadBit(int(hardware)) != 0{
 		return true

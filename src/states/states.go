@@ -2,7 +2,6 @@ package states
 
 import (
 	"fmt"
-//	"time"
 	"driver"
 	"queue"
 	"communication"
@@ -14,7 +13,6 @@ const (
 	IDLE
 	MOVING
 	STOPPED
-	
 	DOOR_OPEN
 	DOOR_OBSTRUCTED
 	OBSTRUCTION
@@ -32,7 +30,7 @@ var elevatorStopButton bool = false
 var obstruction bool = false
 
 func EvFloorReached(f int){
-	fmt.Printf("states: Floor %v reached\n", f)
+	fmt.Printf("states: EvFloorReached(): Floor %v reached\n", f)
 	
 	switch state{
 	case INIT:
@@ -50,6 +48,7 @@ func EvFloorReached(f int){
 		queue.SetCurrentFloor(f)
 		communication.NotifyTheOthers("F", f, false, 0)
 		if (queue.ShallStop()){
+			fmt.Println("states: EvFloorReached(): ShallStop() returned true")
 			driver.Stop()
 
 			if (f > 1 && f < queue.GetNumberOfFloors()){
@@ -97,8 +96,8 @@ func EvFloorReached(f int){
 				communication.NotifyTheOthers("D", 0, false, -1)
 			}
 			driver.SetDoorLight()
-			fmt.Println("states: Door open")
-			fmt.Println("states: Calling ResetTimer() now from EvFloorReached()!")
+			fmt.Println("states: EvFloorReached(): Door opening")
+			fmt.Println("states: EvFloorReached(): ResetTimer() called")
 			go ResetTimer()
 			state = DOOR_OPEN
 		}else if (f == 1){
@@ -145,40 +144,42 @@ func EvTimerOut(){
 	switch state{
 	case DOOR_OPEN:
 		driver.ClearDoorLight()
-		fmt.Println("states: Timeout, door closed. Assigning new task")
-		fmt.Printf("states: Direction for correct AssignNewTask(): %v\n", queue.GetDirectionElevator())
+		fmt.Println("states: EvTimerOut(): Door closed. Calling AssignNewTask()")
 		
 		queue.AssignNewTask()
 		
-		fmt.Printf("states: Assigned task is: %v\n", queue.GetAssignedTask())
-		fmt.Printf("states: Current floor is: %v\n", queue.GetCurrentFloor())
-		queue.PrintQueue()
+		fmt.Printf("states: EvTimerOut(): Called AssignNewTask() and got task: %v\n", queue.GetAssignedTask())
+		fmt.Printf("states: EvTimerOut(): Current floor is: %v\n", queue.GetCurrentFloor())
 		
 		if (queue.GetAssignedTask() != -1){
+			//state = MOVING
+			MoveInDirectionFloorAndNotifyTheOthers(queue.GetAssignedTask())
 			state = MOVING
+			/*
 			if (queue.GetAssignedTask() > queue.GetCurrentFloor()){
 				queue.SetDirectionElevator(1)
 				communication.NotifyTheOthers("D", 0, false, 1)
 				driver.MoveUp()
-				fmt.Println("states: MoveUp() called from EvTimerOut()")
+				fmt.Println("states: EvTimerOut(): MoveUp() called")
 			}else if (queue.GetAssignedTask() < queue.GetCurrentFloor()){
 				queue.SetDirectionElevator(-1)
 				communication.NotifyTheOthers("D", 0, false, -1)
 				driver.MoveDown()
-				fmt.Println("states: MoveDown() called from EvTimerOut()")
+				fmt.Println("states: EvTimerOut(): MoveDown() called")
 			}else if (queue.GetAssignedTask() == queue.GetCurrentFloor()){ // To fix that the elevator can go back to most recently passed floor after a sudden stop (between two floors)
 				if (queue.GetDirectionElevator() == 1){
 					queue.SetDirectionElevator(-1)
 					communication.NotifyTheOthers("D", 0, false, -1)
 					driver.MoveDown()
-					fmt.Println("states: Special MoveDown() called from EvTimerOut()")
+					fmt.Println("states: EvTimerOut(): Special MoveDown() called")
 				}else if (queue.GetDirectionElevator() == -1){
 					queue.SetDirectionElevator(1)
 					communication.NotifyTheOthers("D", 0, false, 1)
 					driver.MoveUp()
-					fmt.Println("states: Special MoveUp() called from EvTimerOut()")
+					fmt.Println("states: EvTimerOut(): Special MoveUp() called")
 				}
 			}
+			*/
 		}else if (queue.GetAssignedTask() == -1){
 			state = IDLE
 		}
@@ -301,16 +302,19 @@ func EvObstructionOff(){
 		if (queue.GetAssignedTask() == -1){
 			//fmt.Println("states: EvObstructionOff() returns IDLE here")
 			state = IDLE
-		}else if (queue.GetAssignedTask() > queue.GetCurrentFloor()){
+			break
+		}else{
+			MoveInDirectionFloorAndNotifyTheOthers(queue.GetAssignedTask())
+		}/*else if (queue.GetAssignedTask() > queue.GetCurrentFloor()){
 			queue.SetDirectionElevator(1)
 			communication.NotifyTheOthers("D", 0, false, 1)
 			driver.MoveUp()
-			fmt.Println("states: MoveUp() called from EvObstructionOff()")
+			fmt.Println("states: EvObstructionOff(): MoveUp() called")
 		}else if (queue.GetAssignedTask() < queue.GetCurrentFloor()){
 			queue.SetDirectionElevator(-1)
 			communication.NotifyTheOthers("D", 0, false, -1)
 			driver.MoveDown()
-			fmt.Println("states: MoveDown() called from EvObstructionOff()")
+			fmt.Println("states: EvObstructionOff(): MoveDown() called")
 		}else if (queue.GetAssignedTask() == queue.GetCurrentFloor()){ // To fix that the elevator can go back to most recently passed floor after a sudden stop (between two floors)
 			if (queue.GetDirectionElevator() == 1){
 				queue.SetDirectionElevator(-1)
@@ -322,19 +326,18 @@ func EvObstructionOff(){
 				driver.MoveUp()
 			}
 		}
+		*/
 		driver.ClearDoorLight()
 		state = MOVING
 		break
 
 	case DOOR_OBSTRUCTED:
-		fmt.Println("states: Calling ResetTimer() now from EvObstructionOff()!")
 		go ResetTimer()
+		fmt.Println("states: EvObstructionOff(): ResetTimer() called")
 		state = DOOR_OPEN
 		break
 
 	case STOPPED_OBSTRUCTION:
-		//queue.AssignNewTask()
-		fmt.Printf("states: Assigned task shoud be -1: %v\n", queue.GetAssignedTask())
 		//fmt.Println("state = STOPPED HER 4 ****************************************")
 		state = STOPPED
 		break
@@ -348,57 +351,63 @@ func EvNewOrderInEmptyQueue(floorButton int){
 	fmt.Println("states: EvNewOrderInEmptyQueue() was called")
 	switch state{
 	case IDLE:
+		MoveInDirectionFloorAndNotifyTheOthers(floorButton)
+		/*
 		if (floorButton > queue.GetCurrentFloor()){
 			queue.SetDirectionElevator(1)
 			communication.NotifyTheOthers("D", 0, false, 1)
-			fmt.Println("states: Calling MoveUp() from EvNewOrderInEmptyQueue()")
+			fmt.Println("states: EvNewOrderInEmptyQueue(): Calling MoveUp()")
 			driver.MoveUp()
 		}else if (floorButton < queue.GetCurrentFloor()){
 			queue.SetDirectionElevator(-1)
 			communication.NotifyTheOthers("D", 0, false, 1)
-			fmt.Println("states: Calling MoveDown() from EvNewOrderInEmptyQueue()")
+			fmt.Println("states: EvNewOrderInEmptyQueue(): Calling MoveDown()")
 			driver.MoveDown()
 		}else if (floorButton == queue.GetCurrentFloor()){ // To fix that the elevator can go back to most recently passed floor after a sudden stop (between two floors)
 			if (queue.GetDirectionElevator() == 1){
 				queue.SetDirectionElevator(-1)
 				communication.NotifyTheOthers("D", 0, false, -1)
-				fmt.Println("states: Calling MoveDown() from EvNewOrderInEmptyQueue() from top floor")
+				fmt.Println("states: EvNewOrderInEmptyQueue(): Calling MoveDown() from top floor")
 				driver.MoveDown()
 			}else if (queue.GetDirectionElevator() == -1){
 				queue.SetDirectionElevator(1)
 				communication.NotifyTheOthers("D", 0, false, 1)
-				fmt.Println("states: Calling MoveUp() from EvNewOrderInEmptyQueue() from bottom floor")
+				fmt.Println("states: EvNewOrderInEmptyQueue(): Calling MoveUp() from bottom floor")
 				driver.MoveUp()
 			}
 		}
+		*/
 		state = MOVING
 		break
 
 	case STOPPED:
+		MoveInDirectionFloorAndNotifyTheOthers(floorButton)
+		/*
 		if (floorButton > queue.GetCurrentFloor()){
 			queue.SetDirectionElevator(1)
 			communication.NotifyTheOthers("D", 0, false, 1)
-			fmt.Println("states: Calling MoveUp() from EvNewOrderInEmptyQueue()")
+			fmt.Println("states: EvNewOrderInEmptyQueue(): Calling MoveUp()")
 			driver.MoveUp()
 		}else if (floorButton < queue.GetCurrentFloor()){
 			queue.SetDirectionElevator(-1)
 			communication.NotifyTheOthers("D", 0, false, -1)
-			fmt.Println("states: Calling MoveDown() from EvNewOrderInEmptyQueue()")
+			fmt.Println("states: EvNewOrderInEmptyQueue(): Calling MoveDown()")
 			driver.MoveDown()
 		}else if (floorButton == queue.GetCurrentFloor()){
-			fmt.Printf("states: WARNING:EvNewOrderInEmptyQueue() was called when there was a \nnew order in the same floor as the elevator. \nAction Catching up by reversing motor.\n")
+			fmt.Printf("states: EvNewOrderInEmptyQueue(): WARNING:EvNewOrderInEmptyQueue() was called when there was a \nnew order in the same floor as the elevator. \nAction Catching up by reversing motor.\n")
 			if (queue.GetDirectionElevator() == 1){
 				queue.SetDirectionElevator(-1)
 				communication.NotifyTheOthers("D", 0, false, -1)
-				fmt.Println("states: Calling MoveDown() from EvNewOrderInEmptyQueue() from top floor")
+				fmt.Println("states: EvNewOrderInEmptyQueue(): Calling MoveDown() from top floor")
 				driver.MoveDown()
 			}else if (queue.GetDirectionElevator() == -1){
 				queue.SetDirectionElevator(1)
 				communication.NotifyTheOthers("D", 0, false, 1)
-				fmt.Println("states: Calling MoveUp() from EvNewOrderInEmptyQueue() from bottom floor")
+				fmt.Println("states: EvNewOrderInEmptyQueue(): Calling MoveUp() from bottom floor")
 				driver.MoveUp()
 			}
 		}
+		*/
 		state = MOVING
 		break
 
@@ -420,13 +429,13 @@ func EvNewOrderInCurrentFloor(){//f int, buttonDirection int){
 	switch state{
 	case IDLE:
 		driver.SetDoorLight()
-		fmt.Println("states: Calling ResetTimer() now from EvNewOrderInCurrentFloor() 1!")
+		fmt.Println("states: EvNewOrderInCurrentFloor(): Calling ResetTimer() from IDLE!")
 		go ResetTimer()
 		state = DOOR_OPEN
 		break
 
 	case DOOR_OPEN:
-		fmt.Println("states: Calling ResetTimer() now from EvNewOrderInCurrentFloor() 2!")
+		fmt.Println("states: EvNewOrderInCurrentFloor(): Calling ResetTimer() from DOOR_OPEN!")
 		
 		select{
 		case quitResetTimer <- true:
@@ -457,28 +466,28 @@ func SetFloorIndicator(floor int){
 func PrintState(){
 	fmt.Println("states: PrintState")
 	if (state == INIT){
-		fmt.Printf("states: Current state is: INIT\n")
+		fmt.Printf("states: PrintState(): Current state is: INIT\n")
 	}
 	if (state == IDLE){
-		fmt.Printf("states: Current state is: IDLE\n")
+		fmt.Printf("states: PrintState(): Current state is: IDLE\n")
 	}
 	if (state == DOOR_OPEN){
-		fmt.Printf("states: Current state is: DOOR_OPEN\n")
+		fmt.Printf("states: PrintState(): Current state is: DOOR_OPEN\n")
 	}
 	if (state == DOOR_OBSTRUCTED){
-		fmt.Printf("states: Current state is: DOOR_OBSTRUCTED\n")
+		fmt.Printf("states: PrintState(): Current state is: DOOR_OBSTRUCTED\n")
 	}
 	if (state == MOVING){
-		fmt.Printf("states: Current state is: MOVING\n")
+		fmt.Printf("states: PrintState(): Current state is: MOVING\n")
 	}
 	if (state == STOPPED){
-		fmt.Printf("states: Current state is: STOPPED\n")
+		fmt.Printf("states: PrintState(): Current state is: STOPPED\n")
 	}
 	if (state == OBSTRUCTION){
-		fmt.Printf("states: Current state is: OBSTRUCTION\n")
+		fmt.Printf("states: PrintState(): Current state is: OBSTRUCTION\n")
 	}
 	if (state == STOPPED_OBSTRUCTION){
-		fmt.Printf("states: Current state is: STOPPED_OBSTRUCTION\n")
+		fmt.Printf("states: PrintState(): Current state is: STOPPED_OBSTRUCTION\n")
 	}	
 }
 

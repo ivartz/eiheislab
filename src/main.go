@@ -7,27 +7,24 @@ import (
 	"states"
 	"queue"
 	"communication"
-	"time"
 
 )
 // elevatorNumber, numberOfFloors and numberOfElevators constants are set in ../src/queue/queue.go
-
-
-
 func main(){
 
 	if (!driver.Initialize(queue.GetNumberOfFloors())){
 		fmt.Println("main: Unable to initialize hardware..")
 	}
 
-	elevIpAddresses := []string{"129.241.187.146", "129.241.187.141"}
-	elevPorts := []int{20011, 20004}
+	elevIpAddresses := []string{"129.241.187.155", "129.241.187.145"}
+	elevPorts := []int{20020, 20017}
 
 	if (!communication.Initialize(elevIpAddresses, elevPorts)){
 		fmt.Println("main: Unable to initialize network..")
 	}
 	
 	queue.Initialize()
+	states.Initialize()
 
 	driver.MoveDown()
 	queue.SetDirectionElevator(-1)
@@ -40,30 +37,43 @@ func main(){
 	fmt.Printf("main: Current task in initialization: %v\n", queue.GetAssignedTask())
 	//fmt.Printf("********for loop Go!********\n")
 
-	go states.Clock()
-	go HandleStopButton()
-	go HandleFloorSensor()
-	go HandleFloorButtons()
-	go HandleCommandButtons()
-	go states.HandleRemoteCalls()
-	go HandleTimeOut()
-	go HandleObstruction()
+	//go states.Clock()
+	//go HandleStopButton()
+	
+	go states.CheckOrderButtonsAndSendToOrderChannels()
+	
+	go states.CheckOrderChannelsAndCallEvents()
+	
+	go states.CheckRemoteENOEQCall()
+	
+	go states.CheckIfTimeoutCallEventAndPrintQueue()
+	
+	go states.CheckFloorSensorAndCallEvents()
+	
+	go states.CheckStopAndObstructionAndCallEvents()
+
+	//go HandleFloorButtons()
+	//go HandleCommandButtons()
+	//go HandleObstruction()
+
 
 	select{
 	}
 }
 
-type previousButton struct{
-	Type driver.OrderType
-	Floor int
-}
+
 
 // Called as goroutines
+/*
 func HandleFloorButtons(){
 	// Checking floor buttons and adding orders, setting button lights and calling events
-	previous := previousButton{driver.BUTTON_PRESSED, 0}
+	/*type previousButton struct{
+	Type driver.OrderType
+	Floor int
+	}
+	previous := previousButton{driver.BUTTON_RELEASED, 0}
 	for{
-		if (!states.CheckElevatorStopButtonVariable() && !driver.CheckButton(previous.Type, previous.Floor)){
+		if (!states.CheckElevatorStopButtonVariable()){// && !driver.CheckButton(previous.Type, previous.Floor)){
 			for floor := 1; floor <= queue.GetNumberOfFloors(); floor++{
 				if (floor > 1 && floor < queue.GetNumberOfFloors()){
 					if (driver.CheckButton(0, floor) && !queue.CheckOrder(0, floor) && floor != driver.GetFloorSensorSignal()){
@@ -161,13 +171,19 @@ func HandleFloorButtons(){
 					}
 				}
 			}
+		}/*else if (!states.CheckElevatorStopButtonVariable() && !driver.CheckButton(previous.Type, previous.Floor)){
+			previous = previousButton{driver.BUTTON_RELEASED, 0}
 		}
 		time.Sleep(10 * time.Millisecond)
 	}
 }
-
+/*
 func HandleCommandButtons(){
-	previous := previousButton{driver.BUTTON_PRESSED, 0}
+	type previousButton struct{
+	Type driver.OrderType
+	Floor int
+	}
+	previous := previousButton{driver.BUTTON_RELEASED, 0}
 	for{
 		if (!driver.CheckButton(previous.Type, previous.Floor)){
 			for floor := 1; floor <= queue.GetNumberOfFloors(); floor++{
@@ -193,52 +209,30 @@ func HandleCommandButtons(){
 					//fmt.Println("main: EvNewOrderInCurrentFloor() was called from HandleCommandButtons()")
 				}
 			}
+		}else if (!states.CheckElevatorStopButtonVariable() && !driver.CheckButton(previous.Type, previous.Floor)){
+			previous = previousButton{driver.BUTTON_RELEASED, 0}
 		}
 		time.Sleep(10 * time.Millisecond)
 	}
 }
+*/
 
-func HandleFloorSensor(){
-	// Check if floor reached and call EvFloorReached() once
-	// -1 if a floor is not reached. If floor reached: 1-4. Belongs to HandleFloorSensor() 
-	reached := -1	
-	for{
-		if (driver.GetFloorSensorSignal() != reached){
-			if (reached == -1){
-				reached = driver.GetFloorSensorSignal()
-				states.EvFloorReached(reached)
-			}else if (reached != -1){
-				reached = driver.GetFloorSensorSignal()
-			}
-		}
-		if (driver.GetFloorSensorSignal() != reached){
-			fmt.Printf("\nmain: Floor sensor says: %v\n", driver.GetFloorSensorSignal())
-			states.PrintState()
-		}
-		time.Sleep(10 * time.Millisecond)		
-	}
-}
 
+
+
+/*
 func HandleStopButton(){
 	// Check if stop button is pressed, if so, stop elevator and remove all orders
 	for{
 		if (driver.CheckStopButton() && !states.CheckElevatorStopButtonVariable()){
 			states.EvStopButton()
 		}
-		time.Sleep(500 * time.Millisecond)
+		time.Sleep(400 * time.Millisecond)
 	}
-}
+}*/
 
-func HandleTimeOut(){
-	// Time out signal check
-	for{
-		if (states.CheckTimeOut() && !driver.CheckObstruction()){
-			states.EvTimerOut()
-		}
-		time.Sleep(1 * time.Second)
-	}
-}
 
+/*
 func HandleObstruction(){
 	// Universal obstruction signal
 	for{
@@ -252,3 +246,4 @@ func HandleObstruction(){
 		time.Sleep(500 * time.Millisecond)	
 	}
 }
+*/
