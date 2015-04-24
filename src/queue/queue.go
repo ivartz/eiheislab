@@ -7,15 +7,12 @@ import (
 )
 
 // Unique for each elevator
-const elevatorNumber int = 1
-
+const elevatorNumber int = 2
 
 const numberOfFloors int = 4
+
 //const numberOfElevators int = 3
-
 const numberOfElevators int = 2
-
-var task int = -1
 
 // Must be synchronized
 var FloorElevator = make([]int, numberOfElevators)
@@ -27,11 +24,25 @@ var OrderFloorDown = make([]bool, numberOfFloors)
 // Not synchronized
 var orderCommand = make([]bool, numberOfFloors)
 
+var task int = -1
+
+func Initialize(){
+	InitializeQueue()
+	InitializeFloorsAndDirections()
+}
+
 func InitializeQueue(){
 	for floor := 0; floor < numberOfFloors; floor++{
 		OrderFloorUp[floor] = false
 		OrderFloorDown[floor] = false
 		orderCommand[floor] = false
+	}
+}
+
+func InitializeFloorsAndDirections(){
+	for i := range FloorElevator{
+		FloorElevator[i] = -1
+		DirectionElevator[i] = 0
 	}
 }
 
@@ -228,7 +239,7 @@ func GetCurrentFloor() int{
 }
 
 func SetDirectionElevator(dir int){
-	fmt.Println("queue: SetDirectionElevator() was called")
+	fmt.Printf("queue: SetDirectionElevator(%v) was called\n", dir)
 	DirectionElevator[elevatorNumber - 1] = dir
 }
 
@@ -266,17 +277,21 @@ func IsEmpty() bool{
 
 //NB! DENNE FUNGERER IKKE FULLSTENDIG UT!!
 func IsClosest(floor int) int{
+	fmt.Println("queue: IsClosest() was called")
 	diff := numberOfFloors
 	elev := elevatorNumber
 	for index := range FloorElevator{
-		temp := FloorElevator[index] - floor 
-		if temp < 0{
-			temp = -temp
-		}
-		if temp < diff{
-			diff = temp
-			elev = index + 1
+		if FloorElevator[index] != -1{
+			temp := FloorElevator[index] - floor 
+			if temp < 0{
+				temp = -temp
+			}
+			if temp < diff{
+				diff = temp
+				elev = index + 1
+			}		
 		}
 	}
+	fmt.Printf("queue: IsClosest(): Elevator %v was closest\n", elev)
 	return elev
 }

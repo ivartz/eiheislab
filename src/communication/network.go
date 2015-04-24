@@ -8,16 +8,10 @@ import (
 	"errors"
 	"sync"
 	"queue"
-	//"encoding/json"
 )
 
 var BroadcastIP string = "129.241.255.255"
 var BroadcastPort int = 30500
-
-//type tcp_conn struct {
-//	conn *net.TCPConn
-//	receive_ch chan Tcp_message
-//}
 
 // Map (dictionary) that keeps track of the existing tcp connections
 var conn_list map[string]*net.TCPConn
@@ -150,7 +144,13 @@ func tcp_handle_server (listener *net.TCPListener, r_ch chan Tcp_message){
 						conn_list_mutex.Unlock()
 						return 
 					} else {
-						r_ch <- Tcp_message{Raddr: raddr, Data: buf, Length: n}
+						select{
+						case r_ch <- Tcp_message{Raddr: raddr, Data: buf, Length: n}:
+							fmt.Println("communication: tcp_handle_server: Sent received Tcp_message into receiveChan")
+						default:
+							fmt.Println("communication: tcp_handle_server: *********************************************************ERROR: receiveChan is BLOCKED!!!! \n")
+						}
+						//r_ch <- Tcp_message{Raddr: raddr, Data: buf, Length: n}
 					}
 			}		
 		}(raddr.String(), newConn, r_ch)

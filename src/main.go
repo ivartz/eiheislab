@@ -20,14 +20,14 @@ func main(){
 		fmt.Println("main: Unable to initialize hardware..")
 	}
 
-	elevIpAddresses := []string{"129.241.187.143", "129.241.187.141"}
-	elevPorts := []int{20005, 20004}
+	elevIpAddresses := []string{"129.241.187.146", "129.241.187.141"}
+	elevPorts := []int{20011, 20004}
 
 	if (!communication.Initialize(elevIpAddresses, elevPorts)){
 		fmt.Println("main: Unable to initialize network..")
 	}
 	
-	queue.InitializeQueue()
+	queue.Initialize()
 
 	driver.MoveDown()
 	queue.SetDirectionElevator(-1)
@@ -53,87 +53,111 @@ func main(){
 	}
 }
 
+type previousButton struct{
+	Type driver.OrderType
+	Floor int
+}
+
 // Called as goroutines
 func HandleFloorButtons(){
 	// Checking floor buttons and adding orders, setting button lights and calling events
+	previous := previousButton{driver.BUTTON_PRESSED, 0}
 	for{
-		if (!states.CheckElevatorStopButtonVariable()){
+		if (!states.CheckElevatorStopButtonVariable() && !driver.CheckButton(previous.Type, previous.Floor)){
 			for floor := 1; floor <= queue.GetNumberOfFloors(); floor++{
 				if (floor > 1 && floor < queue.GetNumberOfFloors()){
 					if (driver.CheckButton(0, floor) && !queue.CheckOrder(0, floor) && floor != driver.GetFloorSensorSignal()){
+						previous = previousButton{driver.BUTTON_CALL_UP, floor}
 						if (queue.IsEmpty() && queue.GetElevatorNumber() == queue.IsClosest(floor)){
 							states.EvNewOrderInEmptyQueue(floor)					
 							queue.AddOrder(0, floor)
 							driver.SetButtonLight(0, floor)
+							fmt.Println("main: Elevator was closest and took the order, calling NotifyTheOthers()")
 							communication.NotifyTheOthers("OU", floor, true, 0)
-						}else if (queue.IsEmpty() && queue.GetElevatorNumber() != queue.IsClosest(floor) && states.Tick()){
+						}else if (queue.IsEmpty() && queue.GetElevatorNumber() != queue.IsClosest(floor)){// && states.Tick()){
+							fmt.Println("main: Elevator was not closest, calling NotifyTheOthers()")
 							communication.NotifyTheOthers("ENOEQU", floor, false, queue.IsClosest(floor)) // Should cause EvNewOrderInEmptyQueue(), AddOrder() SetButtonLight() and NotifyTheOthers() to be called on closest (best) remote elevator 
 						}else if (states.Tick()){
 							queue.AddOrder(0, floor)
 							driver.SetButtonLight(0, floor)
+							fmt.Println("main: Added order, queue should be non-empty, calling NotifyTheOthers()")
 							communication.NotifyTheOthers("OU", floor, true, 0)
 						}			
-					}else if (driver.CheckButton(0, floor) && floor == driver.GetFloorSensorSignal() && states.Tick()){
+					}else if (driver.CheckButton(0, floor) && floor == driver.GetFloorSensorSignal()){//  && states.Tick()){
+						previous = previousButton{driver.BUTTON_CALL_UP, floor}
 						states.EvNewOrderInCurrentFloor()
+						fmt.Println("main: EvNewOrderInCurrentFloor() called")
 					}
 					if (driver.CheckButton(1, floor) && !queue.CheckOrder(1, floor) && floor != driver.GetFloorSensorSignal()){
+						previous = previousButton{driver.BUTTON_CALL_DOWN, floor}
 						if (queue.IsEmpty() && queue.GetElevatorNumber() == queue.IsClosest(floor)){
 							states.EvNewOrderInEmptyQueue(floor)					
 							queue.AddOrder(1, floor)
 							driver.SetButtonLight(1, floor)
+							fmt.Println("main: Elevator was closest and took the order, calling NotifyTheOthers()")
 							communication.NotifyTheOthers("OD", floor, true, 0)
-						}else if (queue.IsEmpty() && queue.GetElevatorNumber() != queue.IsClosest(floor) && states.Tick()){
+						}else if (queue.IsEmpty() && queue.GetElevatorNumber() != queue.IsClosest(floor)){//  && states.Tick()){
+							fmt.Println("main: Elevator was not closest, calling NotifyTheOthers()")
 							communication.NotifyTheOthers("ENOEQD", floor, false, queue.IsClosest(floor))
 						}else if (states.Tick()){				
 							queue.AddOrder(1, floor)
 							driver.SetButtonLight(1, floor)
+							fmt.Println("main: Added order, queue should be non-empty, calling NotifyTheOthers()")
 							communication.NotifyTheOthers("OD", floor, true, 0)
 						}
-					}else if (driver.CheckButton(1, floor) && floor == driver.GetFloorSensorSignal() && states.Tick()){
+					}else if (driver.CheckButton(1, floor) && floor == driver.GetFloorSensorSignal()){//  && states.Tick()){
+						previous = previousButton{driver.BUTTON_CALL_DOWN, floor}
 						states.EvNewOrderInCurrentFloor()
+						fmt.Println("main: EvNewOrderInCurrentFloor() called")
 					}
 				}
 				// Only one direction from floor 1 and GetNFloors()
 				if (floor == 1){
 					if (driver.CheckButton(0, floor) && !queue.CheckOrder(0, floor) && floor != driver.GetFloorSensorSignal()){
-						if (queue.IsEmpty() && queue.GetElevatorNumber() == queue.IsClosest(floor) && states.Tick()){
+						previous = previousButton{driver.BUTTON_CALL_UP, floor}
+						if (queue.IsEmpty() && queue.GetElevatorNumber() == queue.IsClosest(floor)){//  && states.Tick()){
 							states.EvNewOrderInEmptyQueue(floor)
 							queue.AddOrder(0, floor)
 							driver.SetButtonLight(0, floor)
+							fmt.Println("main: Elevator was closest and took the order, calling NotifyTheOthers()")
 							communication.NotifyTheOthers("OU", floor, true, 0)
-						}else if (queue.IsEmpty() && queue.GetElevatorNumber() != queue.IsClosest(floor) && states.Tick()){ //Adding Tick() here, because there is a little delay before the remote elevator has set the queue and synced it with the others elevator's queues, which in turn will block this NotifyTheOthers() from being called 
-							communication.NotifyTheOthers("ENOEQU", floor, false, queue.IsClosest(floor))
-							//fmt.Println("IS IT THIS PLACE 1???????")		
+						}else if (queue.IsEmpty() && queue.GetElevatorNumber() != queue.IsClosest(floor)){//  && states.Tick()){ //Adding Tick() here, because there is a little delay before the remote elevator has set the queue and synced it with the others elevator's queues, which in turn will block this NotifyTheOthers() from being called 
+							fmt.Println("main: Elevator was not closest, calling NotifyTheOthers()")
+							communication.NotifyTheOthers("ENOEQU", floor, false, queue.IsClosest(floor))	
 						}else if (states.Tick()){
 							queue.AddOrder(0, floor)
 							driver.SetButtonLight(0, floor)
-							//fmt.Println("***********************************************************HERE!?")
+							fmt.Println("main: Added order, queue should be non-empty, calling NotifyTheOthers()")
 							communication.NotifyTheOthers("OU", floor, true, 0)
 						}
-					}else if (driver.CheckButton(0, floor) && floor == driver.GetFloorSensorSignal() && states.Tick()){
+					}else if (driver.CheckButton(0, floor) && floor == driver.GetFloorSensorSignal()){//  && states.Tick()){
+						previous = previousButton{driver.BUTTON_CALL_UP, floor}
 						states.EvNewOrderInCurrentFloor()
+						fmt.Println("main: EvNewOrderInCurrentFloor() called")
 					}
 				}
 				if (floor == queue.GetNumberOfFloors()){
 					if (driver.CheckButton(1, floor) && !queue.CheckOrder(1, floor) && floor != driver.GetFloorSensorSignal()){
-						if (queue.IsEmpty() && queue.GetElevatorNumber() == queue.IsClosest(floor) && states.Tick()){
+						previous = previousButton{driver.BUTTON_CALL_DOWN, floor}
+						if (queue.IsEmpty() && queue.GetElevatorNumber() == queue.IsClosest(floor)){//  && states.Tick()){
 							states.EvNewOrderInEmptyQueue(floor)
-							//fmt.Println("HERELALALALALL")
 							queue.AddOrder(1, floor)
-							driver.SetButtonLight(1, floor)	
+							driver.SetButtonLight(1, floor)
+							fmt.Println("main: Elevator was closest and took the order, calling NotifyTheOthers()")	
 							communication.NotifyTheOthers("OD", floor, true, 0)
-						}else if (queue.IsEmpty() && queue.GetElevatorNumber() != queue.IsClosest(floor) && states.Tick()){
+						}else if (queue.IsEmpty() && queue.GetElevatorNumber() != queue.IsClosest(floor)){//  && states.Tick()){
+							fmt.Println("main: Elevator was not closest, calling NotifyTheOthers()")
 							communication.NotifyTheOthers("ENOEQD", floor, false, queue.IsClosest(floor))
-							//fmt.Println("IS IT THIS PLACE 2???????")
 						}else if (states.Tick()){
 							queue.AddOrder(1, floor)
 							driver.SetButtonLight(1, floor)
-							//fmt.Println("***********************************************************HERE 2 !?")
+							fmt.Println("main: Added order, queue should be non-empty, calling NotifyTheOthers()")
 							communication.NotifyTheOthers("OD", floor, true, 0)
 						}
-					}else if (driver.CheckButton(1, floor) && floor == driver.GetFloorSensorSignal() && states.Tick()){
+					}else if (driver.CheckButton(1, floor) && floor == driver.GetFloorSensorSignal()){//  && states.Tick()){
+						previous = previousButton{driver.BUTTON_CALL_DOWN, floor}
 						states.EvNewOrderInCurrentFloor()
-						//fmt.Println("HEREEØKJHRLKEJHRKLJEHLKREKJH")
+						fmt.Println("main: EvNewOrderInCurrentFloor() called")
 					}
 				}
 			}
@@ -143,32 +167,34 @@ func HandleFloorButtons(){
 }
 
 func HandleCommandButtons(){
+	previous := previousButton{driver.BUTTON_PRESSED, 0}
 	for{
-		for floor := 1; floor <= queue.GetNumberOfFloors(); floor++{
-			if (driver.CheckButton(2, floor) && !queue.CheckOrder(2, floor) && floor != driver.GetFloorSensorSignal()){
-				//if (states.CheckElevatorStopButtonVariable()){
-				//	states.EvStopButtonOff()
-				//}
-				if (queue.IsEmpty()){
-					if (states.CheckElevatorStopButtonVariable()){
-						states.EvStopButtonOff()
+		if (!driver.CheckButton(previous.Type, previous.Floor)){
+			for floor := 1; floor <= queue.GetNumberOfFloors(); floor++{
+				if (driver.CheckButton(2, floor) && !queue.CheckOrder(2, floor) && floor != driver.GetFloorSensorSignal()){
+					previous = previousButton{driver.BUTTON_COMMAND, floor}
+					if (queue.IsEmpty()){
+						if (states.CheckElevatorStopButtonVariable()){
+							states.EvStopButtonOff()
+						}
+						states.EvNewOrderInEmptyQueue(floor)
+						queue.AddOrder(2, floor)
+						driver.SetButtonLight(2, floor)
+						//fmt.Println("main: EvNewOrderInEmptyQueue() was called from HandleCommandButtons()")
+					}else{
+						queue.AddOrder(2, floor)
+						driver.SetButtonLight(2, floor)
+						//fmt.Println("main: ************************ANOTHER command order was added to queue!!!")
 					}
-					states.EvNewOrderInEmptyQueue(floor)
-					queue.AddOrder(2, floor)
-					driver.SetButtonLight(2, floor)
-					//fmt.Println("main: EvNewOrderInEmptyQueue() was called from HandleCommandButtons()")
-				}else{
-					queue.AddOrder(2, floor)
-					driver.SetButtonLight(2, floor)
-					//fmt.Println("main: ************************ANOTHER command order was added to queue!!!")
+				}else if (driver.CheckButton(2, floor) && floor == driver.GetFloorSensorSignal()){// && states.Tick()){
+					previous = previousButton{driver.BUTTON_COMMAND, floor}
+					states.EvStopButtonOff()
+					states.EvNewOrderInCurrentFloor()
+					//fmt.Println("main: EvNewOrderInCurrentFloor() was called from HandleCommandButtons()")
 				}
-			}else if (driver.CheckButton(2, floor) && floor == driver.GetFloorSensorSignal() && states.Tick()){
-				states.EvStopButtonOff()
-				states.EvNewOrderInCurrentFloor()
-				//fmt.Println("main: EvNewOrderInCurrentFloor() was called from HandleCommandButtons()")
 			}
 		}
-		time.Sleep(10 * time.Millisecond)		
+		time.Sleep(10 * time.Millisecond)
 	}
 }
 
@@ -199,7 +225,7 @@ func HandleStopButton(){
 		if (driver.CheckStopButton() && !states.CheckElevatorStopButtonVariable()){
 			states.EvStopButton()
 		}
-		time.Sleep(10 * time.Millisecond)
+		time.Sleep(500 * time.Millisecond)
 	}
 }
 
@@ -209,7 +235,7 @@ func HandleTimeOut(){
 		if (states.CheckTimeOut() && !driver.CheckObstruction()){
 			states.EvTimerOut()
 		}
-		time.Sleep(10 * time.Millisecond)
+		time.Sleep(1 * time.Second)
 	}
 }
 
@@ -223,6 +249,6 @@ func HandleObstruction(){
 			states.ClearObstructionVariable()
 			states.EvObstructionOff()
 		}
-		time.Sleep(10 * time.Millisecond)	
+		time.Sleep(500 * time.Millisecond)	
 	}
 }

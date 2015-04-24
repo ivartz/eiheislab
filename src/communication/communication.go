@@ -31,7 +31,7 @@ type msg struct{
 	Set bool
 	Dir int
 }
-var sendToAllOthersChan = make (chan msg, 10)
+var sendToAllOthersChan = make (chan msg)
 
 // Struct and chan to handle remote calls when the queue is empty
 type ENOEQmsg struct{
@@ -67,7 +67,7 @@ func NotifyTheOthers(mtype string, floor int, set bool, dir int){
 		select{
 		case sendToAllOthersChan <- temp:
 		default:
-			fmt.Println("******************communication: ERROR: Notify failed. NotifyTheOthers() can't send message because sendToAllOthersChan is blocked")	
+			fmt.Println("communication: ERROR: ************************************NotifyTheOthers() can't send message because sendToAllOthersChan is BLOCKED!")	
 		}
 	}else{
 		fmt.Println("communication: ERROR: Can't NotifyTheOthers(), invalid string argument")
@@ -88,12 +88,17 @@ func HandleOutgoingMessages() error{
 		for i := range elevIpAddresses{
 			if i + 1 != queue.GetElevatorNumber(){
 				tcpm := Tcp_message{elevIpAddresses[i]+":"+strconv.Itoa(elevPorts[i]), jtemp, len(jtemp)}
-				fmt.Printf("communication: HandleOutgoingMessages(): Message to elevator %v:\n               %v\n", i + 1, tcpm)
-				sendChan <- tcpm
-				fmt.Println("communication: HandleOutgoingMessages(): Tcp_message was sent into sendChan!")		
+				//fmt.Printf("communication: HandleOutgoingMessages(): Message to elevator %v:\n               %v\n", i + 1, tcpm)
+				select{
+				case sendChan <- tcpm:
+					fmt.Println("communication: HandleOutgoingMessages(): Tcp_message was sent into sendChan!")		
+				default:
+					fmt.Println("communication: ERROR: ******************************HandleOutgoingMessages() can't send Tcp_message into sendChan because sendChan is BLOCKED!")		
+				}
+				
 			}
 		}
-		time.Sleep(100 * time.Millisecond)	
+		time.Sleep(10 * time.Millisecond)	
 	}
 	r := fmt.Errorf("communication: ERROR: HandleOutgoingMessages() has quit range over sendToAllOthersChan!")
 
@@ -156,7 +161,7 @@ func HandleIncomingMessages() error{
 			select{
 			case ENOEQChan <- enoeqmsg:
 			default:
-				fmt.Println("communication: ENOEQChan blocked!")
+				fmt.Println("communication: ERROR: *****************************************ENOEQChan blocked!")
 			}
 			//fmt.Printf("communication: This best fit elevator to take order to floor %v was remote started from IDLE\n", m.Floor)
 		}else{
