@@ -6,9 +6,14 @@ import (
 //	"communication"
 )
 
+// Unique for each elevator
 const elevatorNumber int = 1
+
+
 const numberOfFloors int = 4
-const numberOfElevators int = 3
+//const numberOfElevators int = 3
+
+const numberOfElevators int = 2
 
 var task int = -1
 
@@ -31,6 +36,7 @@ func InitializeQueue(){
 }
 
 func AddOrder(typeOrder int, floorButton int){
+	fmt.Println("queue: AddOrder() was called")
 	if (typeOrder == 0){
 		OrderFloorUp[floorButton - 1] = true
 	}else if (typeOrder == 1){
@@ -57,6 +63,7 @@ func RemoveAllOrders() {
 }
 
 func RemoveOrder(typeOrder int, floorButton int){
+	fmt.Println("queue: RemoveOrder() was called")
 	if (typeOrder == 0){
 		OrderFloorUp[floorButton - 1] = false
 	}else if (typeOrder == 1){
@@ -212,6 +219,7 @@ func ShallRemoveOppositeFloorOrder() bool{
 }
 
 func SetCurrentFloor(floor int){
+	fmt.Println("queue: SetCurrentFloor() was called")
 	FloorElevator[elevatorNumber - 1] = floor
 }
 
@@ -220,6 +228,7 @@ func GetCurrentFloor() int{
 }
 
 func SetDirectionElevator(dir int){
+	fmt.Println("queue: SetDirectionElevator() was called")
 	DirectionElevator[elevatorNumber - 1] = dir
 }
 
@@ -253,4 +262,21 @@ func IsEmpty() bool{
 		}
 	}
 	return true
+}
+
+//NB! DENNE FUNGERER IKKE FULLSTENDIG UT!!
+func IsClosest(floor int) int{
+	diff := numberOfFloors
+	elev := elevatorNumber
+	for index := range FloorElevator{
+		temp := FloorElevator[index] - floor 
+		if temp < 0{
+			temp = -temp
+		}
+		if temp < diff{
+			diff = temp
+			elev = index + 1
+		}
+	}
+	return elev
 }

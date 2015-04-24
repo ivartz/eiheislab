@@ -92,7 +92,11 @@ func tcp_transmit_server (s_ch chan Tcp_message){
 		fmt.Println("communication: tcp_transmit_server: New message to send")
 		_ , ok := conn_list[msg.Raddr]
 		if (ok != true ){
-			new_tcp_conn(msg.Raddr)	
+			// NB! This blocks s_ch (sendChan) because of reconnect for-loop. Not any more, removed for-loop!
+			if !new_tcp_conn(msg.Raddr){
+				fmt.Println("communication: tcp_transmit_server: Could not establish new tcp connection after two tries.\n               Consequence: Remote elevator must be disconnected and will not receive the messages. Listening for next outgoing message to arrive on sendChan.")
+				continue
+			}	
 		}
 		conn_list_mutex.Lock()
 		sendConn, ok  := conn_list[msg.Raddr]
@@ -101,7 +105,8 @@ func tcp_transmit_server (s_ch chan Tcp_message){
 			err := errors.New("communication: tcp_transmit_server: Failed to add newConn to conn_list map")
 			panic(err)
 		} else {
-			n, err := sendConn.Write(msg.Data)	
+			n, err := sendConn.Write(msg.Data)
+			fmt.Println("communication: tcp_transmit_server(): Message sent.")	
 			conn_list_mutex.Unlock()
 			if err != nil || n < 0 {
 				fmt.Printf("communication: tcp_transmit_server: Write error (deleting remote address): %s\n",err)
@@ -134,7 +139,7 @@ func tcp_handle_server (listener *net.TCPListener, r_ch chan Tcp_message){
 		//reading server to read from the accepted connection newConn
 		go func (raddr string, conn *net.TCPConn, ch chan Tcp_message){ 
 			fmt.Println("communication: tcp_handle_server: Starting new tcp read server because a new connection was accepted")
-			buf := make([]byte,1024)
+			buf := make([]byte, 1024)
 			for {
 					n, err :=	conn.Read(buf)
 					if err != nil || n < 0 {
@@ -161,18 +166,44 @@ func new_tcp_conn(raddr string) bool{
 		fmt.Println("communication: new_tcp_conn: ERROR: could not resolve address")
 		return false
 	}
+	/*
 	for {
 		newConn, err := net.DialTCP("tcp4", nil,  addr)
 		
 		if err != nil {
-			fmt.Printf("communication: new_tcp_conn: DialTCP to %v failed \n", raddr)
+			fmt.Printf("communication: new_tcp_conn: DialTCP to %v failed\n", raddr)
 				time.Sleep(500*time.Millisecond)
 		} else {
+			fmt.Printf("communication: new_tcp_conn: DialTCP to %v succeeded\n", raddr)
 			conn_list_mutex.Lock()
 			conn_list[raddr] = newConn
 			conn_list_mutex.Unlock()
 			return true//got it BREAK!
 		}
+	}
+	*/
+	newConn, err := net.DialTCP("tcp4", nil,  addr)
+	
+	if err != nil {
+		fmt.Printf("communication: new_tcp_conn: DialTCP to %v failed. Trying DialTCP one more time\n", raddr)
+			time.Sleep(500*time.Millisecond)
+			newConn, err := net.DialTCP("tcp4", nil,  addr)
+			if err != nil{
+				fmt.Printf("communication: new_tcp_conn: DialTCP to %v failed again!. Giving up\n", raddr)
+				return false
+			}else{
+				fmt.Printf("communication: new_tcp_conn: DialTCP to %v succeeded after a re-try\n", raddr)
+				conn_list_mutex.Lock()
+				conn_list[raddr] = newConn
+				conn_list_mutex.Unlock()
+				return true//got it BREAK!
+			}
+	} else {
+		fmt.Printf("communication: new_tcp_conn: DialTCP to %v succeeded\n", raddr)
+		conn_list_mutex.Lock()
+		conn_list[raddr] = newConn
+		conn_list_mutex.Unlock()
+		return true//got it BREAK!
 	}
 }
 

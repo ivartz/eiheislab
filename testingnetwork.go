@@ -3,7 +3,7 @@ package main
 import "fmt"
 import "encoding/json"
 //import "time"
-//import "reflect"
+import "reflect"
 
 type innerdata struct{
 	Id int
@@ -27,6 +27,8 @@ func main(){
 	data2 := innerdata{2,6}
 
 	test := data{"dette var kult",data2}
+
+	fmt.Println(reflect.TypeOf(test))
 
 	fmt.Println(test)
 

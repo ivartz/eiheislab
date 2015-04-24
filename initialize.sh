@@ -6,7 +6,7 @@ export GOPATH=$(pwd)
 
 #go install network
 
-go install driver queue states communication network
+go install driver queue states communication
 
 #go install driver
 
