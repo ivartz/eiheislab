@@ -16,8 +16,12 @@ var previousFloorUpButtonState = make ([]bool, queue.GetNumberOfFloors())
 var previousFloorDownButtonState = make ([]bool, queue.GetNumberOfFloors())
 var previousCommandButtonState = make ([]bool, queue.GetNumberOfFloors())
 
-func Initialize(){
+func Initialize() bool{
+	driver.MoveDown()
+	queue.SetDirectionElevator(-1)
 	InitializePreviousButtonStateSlices()	
+
+	return true
 }
 
 func InitializePreviousButtonStateSlices(){
@@ -88,15 +92,17 @@ func CheckOrderChannelsAndCallEvents(){
 			//fmt.Println("states: CheckOrderChannelsAndCallEvents(): RECEIVED FROM orderFloorUpChan")
 			if !elevatorStopButton{
 				if (!queue.CheckOrder(0, floor) && floor != driver.GetFloorSensorSignal()){
-					if (queue.IsEmpty() && queue.GetElevatorNumber() == queue.IsClosest(floor)){
+					queueIsEmpty := queue.IsEmpty()
+					closestElev := queue.IsClosest(floor)
+					if (queueIsEmpty && queue.GetElevatorNumber() == closestElev){
 						EvNewOrderInEmptyQueue(floor)					
 						queue.AddOrder(0, floor)
 						driver.SetButtonLight(0, floor)
 						fmt.Printf("states: CheckOrderChannelsAndCallEvents(): This elevator (%v) was closest and took the order, calling NotifyTheOthers()\n", queue.GetElevatorNumber())
 						communication.NotifyTheOthers("OU", floor, true, 0)
-					}else if (queue.IsEmpty() && queue.GetElevatorNumber() != queue.IsClosest(floor)){
+					}else if (queueIsEmpty && queue.GetElevatorNumber() != closestElev){
 						fmt.Println("states: CheckOrderChannelsAndCallEvents(): Elevator was not closest, calling NotifyTheOthers()")
-						communication.NotifyTheOthers("ENOEQU", floor, false, queue.IsClosest(floor)) // Should cause EvNewOrderInEmptyQueue(), AddOrder() SetButtonLight() and NotifyTheOthers() to be called on closest (best) remote elevator 
+						communication.NotifyTheOthers("ENOEQU", floor, false, closestElev) // Should cause EvNewOrderInEmptyQueue(), AddOrder() SetButtonLight() and NotifyTheOthers() to be called on closest (best) remote elevator 
 					}else{
 						queue.AddOrder(0, floor)
 						driver.SetButtonLight(0, floor)
@@ -112,15 +118,17 @@ func CheckOrderChannelsAndCallEvents(){
 			//fmt.Println("states: CheckOrderChannelsAndCallEvents(): RECEIVED FROM orderFloorDownChan")
 			if !elevatorStopButton{
 				if (!queue.CheckOrder(1, floor) && floor != driver.GetFloorSensorSignal()){
-					if (queue.IsEmpty() && queue.GetElevatorNumber() == queue.IsClosest(floor)){
+					queueIsEmpty := queue.IsEmpty()
+					closestElev := queue.IsClosest(floor)
+					if (queueIsEmpty && queue.GetElevatorNumber() == closestElev){
 						EvNewOrderInEmptyQueue(floor)					
 						queue.AddOrder(1, floor)
 						driver.SetButtonLight(1, floor)
 						fmt.Println("states: CheckOrderChannelsAndCallEvents(): Elevator was closest and took the order, calling NotifyTheOthers()")
 						communication.NotifyTheOthers("OD", floor, true, 0)
-					}else if (queue.IsEmpty() && queue.GetElevatorNumber() != queue.IsClosest(floor)){
+					}else if (queueIsEmpty && queue.GetElevatorNumber() != closestElev){
 						fmt.Println("states: CheckOrderChannelsAndCallEvents(): Elevator was not closest, calling NotifyTheOthers()")
-						communication.NotifyTheOthers("ENOEQD", floor, false, queue.IsClosest(floor))
+						communication.NotifyTheOthers("ENOEQD", floor, false, closestElev)
 					}else{
 						queue.AddOrder(1, floor)
 						driver.SetButtonLight(1, floor)
@@ -254,7 +262,7 @@ func CheckIfTimeoutCallEventAndPrintQueue(){
 func CheckRemoteENOEQCall(){
 	for temp := range communication.ENOEQChan{
 		EvNewOrderInEmptyQueue(temp.Floor)
-		fmt.Println("states: EvNewOrderInEmptyQueue() called from CheckRemoteEventNewOrderInEmptyQueueTrigger()")
+		fmt.Printf("states: CheckRemoteENOEQCall(): EvNewOrderInEmptyQueue() called with floor %v\n", temp.Floor)
 		queue.AddOrder(temp.Dir, temp.Floor)
 		fmt.Printf("states: Motor remote started from IDLE because this elevator was best fit to take order to floor %v\n", temp.Floor)
 		if temp.Dir == 0{

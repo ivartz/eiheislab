@@ -12,5 +12,4 @@ go install driver queue states communication
 
 #go run src/main.go -raddr="129.241.187.153:20021" -lport=20017
 
-#go build src/main.go
 go build src/main.go

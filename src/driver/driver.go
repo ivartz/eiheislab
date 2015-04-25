@@ -32,6 +32,8 @@ func Initialize(nFloors int) bool{
 	ClearDoorLight()
 	SetFloorLight(1)
 
+	fmt.Println("main: Driver successfully initialized")
+
 	return true
 }
 

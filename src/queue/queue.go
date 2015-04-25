@@ -26,9 +26,16 @@ var orderCommand = make([]bool, numberOfFloors)
 
 var task int = -1
 
-func Initialize(){
+func Initialize() bool{
 	InitializeQueue()
 	InitializeFloorsAndDirections()
+
+	fmt.Println("****************************************")
+	fmt.Printf("queue: Elevator #: %v\n", GetElevatorNumber())
+	fmt.Printf("queue: # floors: %v\n", GetNumberOfFloors())
+	fmt.Printf("queue: # elevators: %v\n", GetNumberOfElevators())
+
+	return true
 }
 
 func InitializeQueue(){
@@ -230,7 +237,7 @@ func ShallRemoveOppositeFloorOrder() bool{
 }
 
 func SetCurrentFloor(floor int){
-	fmt.Printf("queue: SetCurrentFloor(): Called to set floor = %v on this elevator (%v)\n", floor, GetElevatorNumber())
+	//fmt.Printf("queue: SetCurrentFloor(): Called to set floor = %v on this elevator (%v)\n", floor, GetElevatorNumber())
 	FloorElevator[elevatorNumber - 1] = floor
 }
 
@@ -239,7 +246,7 @@ func GetCurrentFloor() int{
 }
 
 func SetDirectionElevator(dir int){
-	fmt.Printf("queue: SetDirectionElevator(): Called to set dir = %v on this elevator (%v)\n", dir, GetElevatorNumber())
+	//fmt.Printf("queue: SetDirectionElevator(): Called to set dir = %v on this elevator (%v)\n", dir, GetElevatorNumber())
 	DirectionElevator[elevatorNumber - 1] = dir
 }
 
