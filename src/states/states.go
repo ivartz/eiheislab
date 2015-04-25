@@ -50,7 +50,7 @@ func EvFloorReached(f int){
 		if (queue.ShallStop()){
 			fmt.Println("states: EvFloorReached(): ShallStop() returned true")
 			driver.Stop()
-			
+
 			RemoveCorrectOrdersClearLightsSetDirectionAndNotifyTheOthers(f)
 			/*
 			if (f > 1 && f < queue.GetNumberOfFloors()){
@@ -150,15 +150,19 @@ func EvTimerOut(){
 		fmt.Println("states: EvTimerOut(): Door closed. Calling AssignNewTask()")
 		
 		queue.AssignNewTask()
-		
-		fmt.Printf("states: EvTimerOut(): Called AssignNewTask() and got task: %v\n", queue.GetAssignedTask())
+		tsk := queue.GetAssignedTask()
+
+		fmt.Printf("states: EvTimerOut(): Called AssignNewTask() and got task: %v\n", tsk)
 		//fmt.Printf("states: EvTimerOut(): Current floor is: %v\n", queue.GetCurrentFloor())
 		
-		if (queue.GetAssignedTask() != -1){
+
+		if (tsk != -1){
 			//state = MOVING
-			MoveInDirectionFloorAndNotifyTheOthers(queue.GetAssignedTask())
+			MoveInDirectionFloorAndNotifyTheOthers(tsk)
+			communication.NotifyTheOthers("T", tsk, false, 0)
 			state = MOVING
-		}else if (queue.GetAssignedTask() == -1){
+		}else if (tsk == -1){
+			communication.NotifyTheOthers("T", tsk, false, 0)
 			state = IDLE
 		}
 		break
@@ -333,12 +337,15 @@ func EvObstructionOff(){
 		if (queue.GetAssignedTask() == -1){
 			queue.AssignNewTask()
 		}
-		if (queue.GetAssignedTask() == -1){
+		tsk := queue.GetAssignedTask()
+		if (tsk == -1){
 			//fmt.Println("states: EvObstructionOff() returns IDLE here")
+			communication.NotifyTheOthers("T", tsk, false, 0)
 			state = IDLE
 			break
 		}else{
-			MoveInDirectionFloorAndNotifyTheOthers(queue.GetAssignedTask())
+			MoveInDirectionFloorAndNotifyTheOthers(tsk)
+			communication.NotifyTheOthers("T", tsk, false, 0)
 		}
 		driver.ClearDoorLight()
 		state = MOVING

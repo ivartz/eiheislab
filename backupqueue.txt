@@ -7,7 +7,7 @@ import (
 )
 
 // Unique for each elevator
-const elevatorNumber int = 1
+const elevatorNumber int = 2
 
 //
 const numberOfFloors int = 4
@@ -19,7 +19,6 @@ const numberOfElevators int = 2
 // Must be synchronized
 var FloorElevator = make([]int, numberOfElevators)
 var DirectionElevator = make([]int, numberOfElevators)
-var TaskElevator = make([]int, numberOfElevators) 
 
 var OrderFloorUp = make([]bool, numberOfFloors)
 var OrderFloorDown = make([]bool, numberOfFloors)
@@ -31,7 +30,7 @@ var task int = -1
 
 func Initialize() bool{
 	InitializeQueue()
-	InitializeFloorsAndDirectionsAndTasks()
+	InitializeFloorsAndDirections()
 
 	fmt.Println("****************************************")
 	fmt.Printf("queue: Elevator #: %v\n", GetElevatorNumber())
@@ -49,11 +48,10 @@ func InitializeQueue(){
 	}
 }
 
-func InitializeFloorsAndDirectionsAndTasks(){
+func InitializeFloorsAndDirections(){
 	for i := range FloorElevator{
 		FloorElevator[i] = -1
 		DirectionElevator[i] = 0
-		TaskElevator[i] = -1
 	}
 }
 
@@ -95,7 +93,7 @@ func RemoveOrder(typeOrder int, floorButton int){
 }
 
 func AssignNewTask(){
-	// Assigns new task that is not currently taken by other elevators, using TaskElevator slice
+
 	thisFloor := GetCurrentFloor()
 
 	fmt.Println("queue: AssignNewTask(): Called")
@@ -109,89 +107,61 @@ func AssignNewTask(){
 	if (GetDirectionElevator() == 1){
 		if (thisFloor == numberOfFloors){
 			for floor := numberOfFloors - 2; floor > -1; floor--{
-				for index := range TaskElevator{
-					elevNr := index + 1
-					potentialTask := floor + 1
-					if (OrderFloorUp[floor] || OrderFloorDown[floor] || orderCommand[floor] && TaskElevator[index] != potentialTask && elevNr != elevatorNumber){ //Makes shure that already assigned on other elevators, are assigned
-						task = potentialTask
-						return
-					}
+				if (OrderFloorUp[floor] || OrderFloorDown[floor] || orderCommand[floor]){
+					task = floor + 1
+					return
 				}
 			}
 		}else{
 			for floor := thisFloor; floor < numberOfFloors; floor++{
-				for index := range TaskElevator{
-					elevNr := index + 1
-					potentialTask := floor + 1	
-					if (OrderFloorUp[floor] || OrderFloorDown[floor] || orderCommand[floor] && TaskElevator[index] != potentialTask && elevNr != elevatorNumber){
-						task = potentialTask
-						return
-					}		
+				if (OrderFloorUp[floor] || OrderFloorDown[floor] || orderCommand[floor]){
+					task = floor + 1
+					return
 				}
 			} 
 		}
 		if (thisFloor != 1){
 			for floor := thisFloor - 2; floor > -1; floor--{
-				for index := range TaskElevator{
-					elevNr := index + 1
-					potentialTask := floor + 1
-					if (OrderFloorDown[floor] || OrderFloorUp[floor] || orderCommand[floor] && TaskElevator[index] != potentialTask && elevNr != elevatorNumber){
-						task = potentialTask
-						return
-					}						
+				if (OrderFloorDown[floor] || OrderFloorUp[floor] || orderCommand[floor]){
+					task = floor + 1
+					return
 				}
 			}
 		}
-
 	}else if (GetDirectionElevator() == -1){
 		if (thisFloor == 1){
 			for floor := 1; floor < numberOfFloors; floor++{
-				for index := range TaskElevator{
-					elevNr := index + 1
-					potentialTask := floor + 1
-					if (OrderFloorUp[floor] || OrderFloorDown[floor] || orderCommand[floor] && TaskElevator[index] != potentialTask && elevNr != elevatorNumber){
-						task = potentialTask
-						return
-					}					
+				if (OrderFloorUp[floor] || OrderFloorDown[floor] || orderCommand[floor]){
+					task = floor + 1
+					return
 				}
 			}
 		}else{
 			for floor := thisFloor - 2; floor > -1; floor--{
-				for index := range TaskElevator{
-					elevNr := index + 1
-					potentialTask := floor + 1
-					if (OrderFloorDown[floor] || OrderFloorUp[floor] || orderCommand[floor] && TaskElevator[index] != potentialTask && elevNr != elevatorNumber){
-						task = potentialTask
-						return
-					}					
+				if (OrderFloorDown[floor] || OrderFloorUp[floor] || orderCommand[floor]){
+					task = floor + 1
+					return
 				}
 			} 
 		}
 		if (thisFloor != numberOfFloors){
 			for floor := thisFloor; floor < numberOfFloors; floor++{
-				for index := range TaskElevator{
-					elevNr := index + 1
-					potentialTask := floor + 1
-					if (OrderFloorUp[floor] || OrderFloorDown[floor] || orderCommand[floor] && TaskElevator[index] != potentialTask && elevNr != elevatorNumber){
-						task = potentialTask
-						return
-					}	
+				if (OrderFloorUp[floor] || OrderFloorDown[floor] || orderCommand[floor]){
+					task = floor + 1
+					return
 				}
 			}
 		}	
 	}
+	// No task was found, queue is empty
 	for floor := 0; floor < numberOfFloors; floor++{
-		for index := range TaskElevator{
-			elevNr := index + 1
-			potentialTask := floor + 1
-			if (OrderFloorUp[floor] || OrderFloorDown[floor] || orderCommand[floor] && TaskElevator[index] != potentialTask && elevNr != elevatorNumber){
-				task = potentialTask
-				return
-			}	
+		if (OrderFloorUp[floor] || OrderFloorDown[floor] || orderCommand[floor]){
+			task = floor + 1
+			return
 		}
 	}
 	// Ingen bestillinger STOPP
-	fmt.Println("queue: AssignNewTask(): No non-taken order in queue. Setting task to -1")
+	fmt.Println("queue: AssignNewTask(): No order in queue. Setting task to -1")
 	task = -1
 }
 

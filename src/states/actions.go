@@ -146,7 +146,7 @@ func CheckOrderChansAndCallEvents(){
 						communication.NotifyTheOthers("OU", floor, true, 0)
 					}else if (queueIsEmpty && queue.GetElevatorNumber() != closestElev){
 						fmt.Println("states: CheckOrderChansAndCallEvents(): Elevator was not closest, calling NotifyTheOthers()")
-						communication.NotifyTheOthers("ENOU", floor, false, closestElev) // Should cause EvNewOrderInEmptyQueue(), AddOrder() SetButtonLight() and NotifyTheOthers() to be called on closest (best) remote elevator 
+						communication.NotifyTheOthers("ROU", floor, false, closestElev) // Should cause EvNewOrderInEmptyQueue(), AddOrder() SetButtonLight() and NotifyTheOthers() to be called on closest (best) remote elevator 
 					}else{
 						queue.AddOrder(0, floor)
 						driver.SetButtonLight(0, floor)
@@ -172,7 +172,7 @@ func CheckOrderChansAndCallEvents(){
 						communication.NotifyTheOthers("OD", floor, true, 0)
 					}else if (queueIsEmpty && queue.GetElevatorNumber() != closestElev){
 						fmt.Println("states: CheckOrderChansAndCallEvents(): Elevator was not closest, calling NotifyTheOthers()")
-						communication.NotifyTheOthers("ENOD", floor, false, closestElev)
+						communication.NotifyTheOthers("ROD", floor, false, closestElev)
 					}else{
 						queue.AddOrder(1, floor)
 						driver.SetButtonLight(1, floor)
@@ -326,7 +326,7 @@ func CheckRemoteChanAndCallEvents(){
 			EvNewOrderInCurrentFloor()
 		}
 
-		time.Sleep(3 * time.Second) //Remeber this! Can be set to lower value if needed
+		//time.Sleep(3 * time.Second) //Remeber this! Can be set to lower value if needed
 	}
 }
 

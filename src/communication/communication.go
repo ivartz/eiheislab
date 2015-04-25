@@ -66,7 +66,7 @@ func Initialize(eip []string, ep []int) bool{
 
 func NotifyTheOthers(mtype string, floor int, set bool, dir int){
 	fmt.Println("communication: NotifyTheOthers() was called")
-	if (mtype == "OU" || mtype == "OD" || mtype == "F" || mtype == "D" || mtype == "ENOU" || mtype == "ENOD"){
+	if (mtype == "OU" || mtype == "OD" || mtype == "F" || mtype == "D" || mtype == "ROU" || mtype == "ROD" || mtype == "T"){
 		temp := msg{mtype, queue.GetElevatorNumber(), floor, set, dir}
 		select{
 		case sendToAllOthersChan <- temp:
@@ -169,8 +169,11 @@ func HandleIncomingMessages() error{
 		}else if m.MType == "D"{
 			queue.DirectionElevator[m.ENumber - 1] = m.Dir
 			fmt.Printf("communication: Remote elevator direction; elevator %v set its direction to %v\n", m.ENumber, m.Dir)
+		}else if (m.MType == "T"){
+			queue.TaskElevator[m.ENumber - 1] = m.Floor
+			fmt.Printf("communication: HandleIncomingMessages(): Elevator %v set its task to %v\n", m.ENumber, m.Floor)
 		
-		}else if (m.MType == "ENOU" && m.Dir == queue.GetElevatorNumber()){ //In this case, m.Dir is the best fit elevator
+		}else if (m.MType == "ROU" && m.Dir == queue.GetElevatorNumber()){ //In this case, m.Dir is the best fit elevator
 			remotemsg := RemoteMessage{m.Floor, 0}
 			select{
 			case RemoteChan <- remotemsg:
@@ -178,9 +181,9 @@ func HandleIncomingMessages() error{
 				fmt.Println("communication: HandleIncomingMessages(): ERROR: Can't send RemoteMessage into --> RemoteChan <-- because it is BLOCKED!!")
 			}
 			fmt.Printf("communication: This best fit elevator to take order to floor %v was remote started from IDLE\n", m.Floor)		
-		}else if (m.MType == "ENOU" && m.Dir != queue.GetElevatorNumber()){
-			fmt.Println("communication: HandleIncomingMessages(): ENOU Call not for me")
-		}else if (m.MType == "ENOD" && m.Dir == queue.GetElevatorNumber()){ //In this case, m.Dir is the best fit elevator
+		}else if (m.MType == "ROU" && m.Dir != queue.GetElevatorNumber()){
+			fmt.Println("communication: HandleIncomingMessages(): ROU Call not for me")
+		}else if (m.MType == "ROD" && m.Dir == queue.GetElevatorNumber()){ //In this case, m.Dir is the best fit elevator
 			remotemsg := RemoteMessage{m.Floor, 1}
 			select{
 			case RemoteChan <- remotemsg:
@@ -188,8 +191,8 @@ func HandleIncomingMessages() error{
 				fmt.Println("communication: HandleIncomingMessages(): ERROR: Can't send msg into --> RemoteChan <-- because it is BLOCKED!!")
 			}
 			fmt.Printf("communication: HandleIncomingMessages(): This best fit elevator to take order to floor %v was remote started from IDLE\n", m.Floor)
-		}else if (m.MType == "ENOD" && m.Dir != queue.GetElevatorNumber()){
-			fmt.Println("communication: HandleIncomingMessages(): ENOD Call not for me")
+		}else if (m.MType == "ROD" && m.Dir != queue.GetElevatorNumber()){
+			fmt.Println("communication: HandleIncomingMessages(): ROD Call not for me")
 		}else{
 			r := fmt.Errorf("communication: HandleIncomingMessages(): ERROR: Received and unjsoned a message with unknown MType (%f). Something is wrong with HandleIncomingMessages()\n", m.MType)
 			fmt.Println(r)
