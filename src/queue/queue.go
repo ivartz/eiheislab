@@ -8,11 +8,12 @@ import (
 
 // Unique for each elevator
 const elevatorNumber int = 1
-
+//
 const numberOfFloors int = 4
 
+const numberOfElevators int = 5
 //const numberOfElevators int = 3
-const numberOfElevators int = 2
+//const numberOfElevators int = 2
 
 // Must be synchronized
 var FloorElevator = make([]int, numberOfElevators)

@@ -34,11 +34,11 @@ type msg struct{
 var sendToAllOthersChan = make (chan msg, 7) // 3 + 5 - 1 because 8 is max msg simultaneous sent to sendToAllOthersChan
 
 // Struct and chan to handle remote calls when the queue is empty
-type ENOEQmsg struct{
+type RemoteMessage struct{
 	Floor int
 	Dir int
 }
-var ENOEQChan = make (chan ENOEQmsg)
+var RemoteChan = make (chan RemoteMessage)
 
 
 func Initialize(eip []string, ep []int) bool{
@@ -50,8 +50,11 @@ func Initialize(eip []string, ep []int) bool{
 	elevIpAddresses = eip
 	elevPorts = ep
 
-	TCPServerInit(elevPorts[queue.GetElevatorNumber() - 1], sendChan, receiveChan)
-
+	if error := TCPServerInit(elevPorts[queue.GetElevatorNumber() - 1], sendChan, receiveChan); error != nil{
+		fmt.Printf("communication: Initialize(): ERROR: %f", error)
+		return false
+	}
+	
 	go HandleOutgoingMessages()
 	go HandleIncomingMessages()
 
@@ -63,7 +66,7 @@ func Initialize(eip []string, ep []int) bool{
 
 func NotifyTheOthers(mtype string, floor int, set bool, dir int){
 	fmt.Println("communication: NotifyTheOthers() was called")
-	if (mtype == "OU" || mtype == "OD" || mtype == "F" || mtype == "D" || mtype == "ENOEQU" || mtype == "ENOEQD"){
+	if (mtype == "OU" || mtype == "OD" || mtype == "F" || mtype == "D" || mtype == "ENOU" || mtype == "ENOD"){
 		temp := msg{mtype, queue.GetElevatorNumber(), floor, set, dir}
 		select{
 		case sendToAllOthersChan <- temp:
@@ -167,23 +170,26 @@ func HandleIncomingMessages() error{
 			queue.DirectionElevator[m.ENumber - 1] = m.Dir
 			fmt.Printf("communication: Remote elevator direction; elevator %v set its direction to %v\n", m.ENumber, m.Dir)
 		
-		}else if (m.MType == "ENOEQU" && m.Dir == queue.GetElevatorNumber()){ //In this case, m.Dir is the best fit elevator
-			enoeqmsg := ENOEQmsg{m.Floor, 0}
+		}else if (m.MType == "ENOU" && m.Dir == queue.GetElevatorNumber()){ //In this case, m.Dir is the best fit elevator
+			remotemsg := RemoteMessage{m.Floor, 0}
 			select{
-			case ENOEQChan <- enoeqmsg:
+			case RemoteChan <- remotemsg:
 			default:
-				fmt.Println("communication: HandleIncomingMessages(): ERROR: Can't send ENOEQmsg into --> ENOEQChan <-- because it is BLOCKED!!")
+				fmt.Println("communication: HandleIncomingMessages(): ERROR: Can't send RemoteMessage into --> RemoteChan <-- because it is BLOCKED!!")
 			}
 			fmt.Printf("communication: This best fit elevator to take order to floor %v was remote started from IDLE\n", m.Floor)		
-		}else if (m.MType == "ENOEQD" && m.Dir == queue.GetElevatorNumber()){ //In this case, m.Dir is the best fit elevator
-			enoeqmsg := ENOEQmsg{m.Floor, 1}
+		}else if (m.MType == "ENOU" && m.Dir != queue.GetElevatorNumber()){
+			fmt.Println("communication: HandleIncomingMessages(): ENOU Call not for me")
+		}else if (m.MType == "ENOD" && m.Dir == queue.GetElevatorNumber()){ //In this case, m.Dir is the best fit elevator
+			remotemsg := RemoteMessage{m.Floor, 1}
 			select{
-			case ENOEQChan <- enoeqmsg:
+			case RemoteChan <- remotemsg:
 			default:
-				fmt.Println("communication: HandleIncomingMessages(): ERROR: Can't send msg into --> ENOEQChan <-- because it is BLOCKED!!")
+				fmt.Println("communication: HandleIncomingMessages(): ERROR: Can't send msg into --> RemoteChan <-- because it is BLOCKED!!")
 			}
 			fmt.Printf("communication: HandleIncomingMessages(): This best fit elevator to take order to floor %v was remote started from IDLE\n", m.Floor)
-		
+		}else if (m.MType == "ENOD" && m.Dir != queue.GetElevatorNumber()){
+			fmt.Println("communication: HandleIncomingMessages(): ENOD Call not for me")
 		}else{
 			r := fmt.Errorf("communication: HandleIncomingMessages(): ERROR: Received and unjsoned a message with unknown MType (%f). Something is wrong with HandleIncomingMessages()\n", m.MType)
 			fmt.Println(r)

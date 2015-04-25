@@ -50,9 +50,10 @@ func EvFloorReached(f int){
 		if (queue.ShallStop()){
 			fmt.Println("states: EvFloorReached(): ShallStop() returned true")
 			driver.Stop()
-
+			
+			RemoveCorrectOrdersClearLightsSetDirectionAndNotifyTheOthers(f)
+			/*
 			if (f > 1 && f < queue.GetNumberOfFloors()){
-
 				if (queue.GetDirectionElevator() == 1 && queue.CheckOrder(0, f) || queue.CheckOrder(2, f)){
 					queue.RemoveOrder(0, f)
 					driver.ClearButtonLight(0, f)
@@ -95,6 +96,8 @@ func EvFloorReached(f int){
 				queue.SetDirectionElevator(-1)
 				communication.NotifyTheOthers("D", 0, false, -1)
 			}
+			*/
+
 			driver.SetDoorLight()
 			fmt.Println("states: EvFloorReached(): Door opening")
 			fmt.Println("states: EvFloorReached(): ResetTimer() called")
@@ -149,7 +152,7 @@ func EvTimerOut(){
 		queue.AssignNewTask()
 		
 		fmt.Printf("states: EvTimerOut(): Called AssignNewTask() and got task: %v\n", queue.GetAssignedTask())
-		fmt.Printf("states: EvTimerOut(): Current floor is: %v\n", queue.GetCurrentFloor())
+		//fmt.Printf("states: EvTimerOut(): Current floor is: %v\n", queue.GetCurrentFloor())
 		
 		if (queue.GetAssignedTask() != -1){
 			//state = MOVING
@@ -167,6 +170,65 @@ func EvTimerOut(){
 		break
 	}
 }
+
+func EvNewOrderInEmptyQueue(floorButton int){
+	fmt.Println("states: EvNewOrderInEmptyQueue() was called")
+	switch state{
+	case IDLE:
+		MoveInDirectionFloorAndNotifyTheOthers(floorButton)
+		state = MOVING
+		break
+
+	case STOPPED:
+		MoveInDirectionFloorAndNotifyTheOthers(floorButton)
+		state = MOVING
+		break
+
+	case OBSTRUCTION:
+		break
+
+	case INIT:
+		queue.RemoveAllOrders()
+		driver.ClearAllOrderLights(queue.GetNumberOfFloors())
+		break
+
+	default:
+		break
+	}
+}
+
+func EvNewOrderInCurrentFloor(){//f int, buttonDirection int){
+	fmt.Println("states: EvNewOrderInCurrentFloor() was called")
+	//PrintState()
+	switch state{
+	case IDLE:
+		driver.SetDoorLight()
+		fmt.Println("states: EvNewOrderInCurrentFloor(): Calling ResetTimer() from IDLE!")
+		go ResetTimer()
+		state = DOOR_OPEN
+		break
+
+	case DOOR_OPEN:
+		fmt.Println("states: EvNewOrderInCurrentFloor(): Calling ResetTimer() from DOOR_OPEN!")
+		
+		select{
+		case quitResetTimer <- true:
+		default: 
+		}
+		go ResetTimer()
+		state = DOOR_OPEN	
+		break
+
+	case STOPPED:
+		state = IDLE
+		break
+
+	default:
+		break
+	}
+}
+
+
 
 func EvStopButton(){
 	switch state{
@@ -297,62 +359,7 @@ func EvObstructionOff(){
 	}
 }
 
-func EvNewOrderInEmptyQueue(floorButton int){
-	fmt.Println("states: EvNewOrderInEmptyQueue() was called")
-	switch state{
-	case IDLE:
-		MoveInDirectionFloorAndNotifyTheOthers(floorButton)
-		state = MOVING
-		break
 
-	case STOPPED:
-		MoveInDirectionFloorAndNotifyTheOthers(floorButton)
-		state = MOVING
-		break
-
-	case OBSTRUCTION:
-		break
-
-	case INIT:
-		queue.RemoveAllOrders()
-		driver.ClearAllOrderLights(queue.GetNumberOfFloors())
-		break
-
-	default:
-		break
-	}
-}
-
-func EvNewOrderInCurrentFloor(){//f int, buttonDirection int){
-	fmt.Println("states: EvNewOrderInCurrentFloor() was called")
-	//PrintState()
-	switch state{
-	case IDLE:
-		driver.SetDoorLight()
-		fmt.Println("states: EvNewOrderInCurrentFloor(): Calling ResetTimer() from IDLE!")
-		go ResetTimer()
-		state = DOOR_OPEN
-		break
-
-	case DOOR_OPEN:
-		fmt.Println("states: EvNewOrderInCurrentFloor(): Calling ResetTimer() from DOOR_OPEN!")
-		
-		select{
-		case quitResetTimer <- true:
-		default: 
-		}
-		go ResetTimer()
-		state = DOOR_OPEN	
-		break
-
-	case STOPPED:
-		state = IDLE
-		break
-
-	default:
-		break
-	}
-}
 
 func SetFloorIndicator(floor int){
 	if (floor == -1){

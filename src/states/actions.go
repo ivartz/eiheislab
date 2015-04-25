@@ -83,13 +83,57 @@ func MoveInDirectionFloorAndNotifyTheOthers(floorButton int){
 	}
 }
 
+func RemoveCorrectOrdersClearLightsSetDirectionAndNotifyTheOthers(f int){
+	if (f > 1 && f < queue.GetNumberOfFloors()){
+		if (queue.GetDirectionElevator() == 1 && queue.CheckOrder(0, f) || queue.CheckOrder(2, f)){
+			queue.RemoveOrder(0, f)
+			driver.ClearButtonLight(0, f)
+			communication.NotifyTheOthers("OU", f, false, 0)
+		}else if (queue.GetDirectionElevator() == -1) && queue.CheckOrder(1, f) || queue.CheckOrder(2, f){
+			queue.RemoveOrder(1, f)
+			driver.ClearButtonLight(1, f)
+			communication.NotifyTheOthers("OD", f, false, 0)
+		}
+		driver.ClearButtonLight(2,f)
+			if (queue.ShallRemoveOppositeFloorOrder()){
+			if (queue.GetDirectionElevator() == 1 && queue.CheckOrder(1, f) || queue.CheckOrder(2, f)){
+				queue.RemoveOrder(1, f)
+				driver.ClearButtonLight(1, f)
+				communication.NotifyTheOthers("OD", f, false, 0)
+				driver.ClearButtonLight(2, f)
+			}else if (queue.GetDirectionElevator() == -1 && queue.CheckOrder(0, f) || queue.CheckOrder(2, f)){
+				queue.RemoveOrder(0, f)
+				driver.ClearButtonLight(0, f)
+				communication.NotifyTheOthers("OU", f, false, 0)
+				driver.ClearButtonLight(2, f)						
+			}
+		}
+	}else if (f == 1){
+		queue.RemoveOrder(0, f)
+		driver.ClearButtonLight(0, f)
+		communication.NotifyTheOthers("OU", f, false, 0)
+		driver.ClearButtonLight(2, f)
+		// Changing direction so that AssignNewTask() quickly can find the best task for the this elevator
+		// Also so that ShallStop() will d
+		queue.SetDirectionElevator(1)
+		communication.NotifyTheOthers("D", 0, false, 1)
+	}else if (f == queue.GetNumberOfFloors()){
+		queue.RemoveOrder(1, f)
+		driver.ClearButtonLight(1, f)
+		communication.NotifyTheOthers("OD", f, false, 0)
+		driver.ClearButtonLight(2, f)
+		// Changing direction so that AssignNewTask() quickly can find the best task for the this elevator
+		queue.SetDirectionElevator(-1)
+		communication.NotifyTheOthers("D", 0, false, -1)
+	}
+}
 
 // Run as goroutines
-func CheckOrderChannelsAndCallEvents(){
+func CheckOrderChansAndCallEvents(){
 	for{
 		select{
 		case floor := <- orderFloorUpChan:
-			//fmt.Println("states: CheckOrderChannelsAndCallEvents(): RECEIVED FROM orderFloorUpChan")
+			//fmt.Println("states: CheckOrderChansAndCallEvents(): RECEIVED FROM orderFloorUpChan")
 			if !elevatorStopButton{
 				if (!queue.CheckOrder(0, floor) && floor != driver.GetFloorSensorSignal()){
 					queueIsEmpty := queue.IsEmpty()
@@ -98,15 +142,15 @@ func CheckOrderChannelsAndCallEvents(){
 						EvNewOrderInEmptyQueue(floor)					
 						queue.AddOrder(0, floor)
 						driver.SetButtonLight(0, floor)
-						fmt.Printf("states: CheckOrderChannelsAndCallEvents(): This elevator (%v) was closest and took the order, calling NotifyTheOthers()\n", queue.GetElevatorNumber())
+						fmt.Printf("states: CheckOrderChansAndCallEvents(): This elevator (%v) was closest and took the order, calling NotifyTheOthers()\n", queue.GetElevatorNumber())
 						communication.NotifyTheOthers("OU", floor, true, 0)
 					}else if (queueIsEmpty && queue.GetElevatorNumber() != closestElev){
-						fmt.Println("states: CheckOrderChannelsAndCallEvents(): Elevator was not closest, calling NotifyTheOthers()")
-						communication.NotifyTheOthers("ENOEQU", floor, false, closestElev) // Should cause EvNewOrderInEmptyQueue(), AddOrder() SetButtonLight() and NotifyTheOthers() to be called on closest (best) remote elevator 
+						fmt.Println("states: CheckOrderChansAndCallEvents(): Elevator was not closest, calling NotifyTheOthers()")
+						communication.NotifyTheOthers("ENOU", floor, false, closestElev) // Should cause EvNewOrderInEmptyQueue(), AddOrder() SetButtonLight() and NotifyTheOthers() to be called on closest (best) remote elevator 
 					}else{
 						queue.AddOrder(0, floor)
 						driver.SetButtonLight(0, floor)
-						fmt.Println("states: CheckOrderChannelsAndCallEvents(): Added order, queue should be non-empty, calling NotifyTheOthers()")
+						fmt.Println("states: CheckOrderChansAndCallEvents(): Added order, queue should be non-empty, calling NotifyTheOthers()")
 						communication.NotifyTheOthers("OU", floor, true, 0)
 					}
 				}else if floor == driver.GetFloorSensorSignal(){
@@ -115,7 +159,7 @@ func CheckOrderChannelsAndCallEvents(){
 				} 
 			}
 		case floor := <- orderFloorDownChan:
-			//fmt.Println("states: CheckOrderChannelsAndCallEvents(): RECEIVED FROM orderFloorDownChan")
+			//fmt.Println("states: CheckOrderChansAndCallEvents(): RECEIVED FROM orderFloorDownChan")
 			if !elevatorStopButton{
 				if (!queue.CheckOrder(1, floor) && floor != driver.GetFloorSensorSignal()){
 					queueIsEmpty := queue.IsEmpty()
@@ -124,15 +168,15 @@ func CheckOrderChannelsAndCallEvents(){
 						EvNewOrderInEmptyQueue(floor)					
 						queue.AddOrder(1, floor)
 						driver.SetButtonLight(1, floor)
-						fmt.Println("states: CheckOrderChannelsAndCallEvents(): Elevator was closest and took the order, calling NotifyTheOthers()")
+						fmt.Println("states: CheckOrderChansAndCallEvents(): Elevator was closest and took the order, calling NotifyTheOthers()")
 						communication.NotifyTheOthers("OD", floor, true, 0)
 					}else if (queueIsEmpty && queue.GetElevatorNumber() != closestElev){
-						fmt.Println("states: CheckOrderChannelsAndCallEvents(): Elevator was not closest, calling NotifyTheOthers()")
-						communication.NotifyTheOthers("ENOEQD", floor, false, closestElev)
+						fmt.Println("states: CheckOrderChansAndCallEvents(): Elevator was not closest, calling NotifyTheOthers()")
+						communication.NotifyTheOthers("ENOD", floor, false, closestElev)
 					}else{
 						queue.AddOrder(1, floor)
 						driver.SetButtonLight(1, floor)
-						fmt.Println("states: CheckOrderChannelsAndCallEvents(): Added order, queue should be non-empty, calling NotifyTheOthers()")
+						fmt.Println("states: CheckOrderChansAndCallEvents(): Added order, queue should be non-empty, calling NotifyTheOthers()")
 						communication.NotifyTheOthers("OD", floor, true, 0)
 					}
 				}else if floor == driver.GetFloorSensorSignal(){
@@ -141,7 +185,7 @@ func CheckOrderChannelsAndCallEvents(){
 				}
 			}			
 		case floor := <- orderCommandChan:
-			//fmt.Println("states: CheckOrderChannelsAndCallEvents(): RECEIVED FROM orderCommandChan")
+			//fmt.Println("states: CheckOrderChansAndCallEvents(): RECEIVED FROM orderCommandChan")
 			if (!queue.CheckOrder(2, floor) && floor != driver.GetFloorSensorSignal()){
 				if queue.IsEmpty(){
 					if (elevatorStopButton){
@@ -172,7 +216,7 @@ func CheckOrderButtonsAndSendToOrderChannels(){
 						select{
 							case orderFloorUpChan <- floor:
 						default:
-							fmt.Println("states: CheckOrderChannelsAndCallEvents(): ERROR: orderFloorUpChan is BLOCKED!!")
+							fmt.Println("states: CheckOrderButtonsAndSendToOrderChannels(): ERROR: orderFloorUpChan is BLOCKED!!")
 						}						
 					}
 					updatePreviousButtonState(0, floor, driver.CheckButton(0, floor))
@@ -182,7 +226,7 @@ func CheckOrderButtonsAndSendToOrderChannels(){
 						select{
 							case orderFloorDownChan <- floor:
 						default:
-							fmt.Println("states: CheckOrderChannelsAndCallEvents(): ERROR: orderFloorDownChan is BLOCKED!!")
+							fmt.Println("states: CheckOrderButtonsAndSendToOrderChannels(): ERROR: orderFloorDownChan is BLOCKED!!")
 						}					
 					}
 					updatePreviousButtonState(1, floor, driver.CheckButton(1, floor))
@@ -194,7 +238,7 @@ func CheckOrderButtonsAndSendToOrderChannels(){
 						select{
 							case orderFloorUpChan <- floor:
 						default:
-							fmt.Println("states: CheckOrderChannelsAndCallEvents(): ERROR: orderFloorUpChan is BLOCKED!!")
+							fmt.Println("states: CheckOrderButtonsAndSendToOrderChannels(): ERROR: orderFloorUpChan is BLOCKED!!")
 						}	
 					}
 					updatePreviousButtonState(0, floor, driver.CheckButton(0, floor))
@@ -206,7 +250,7 @@ func CheckOrderButtonsAndSendToOrderChannels(){
 						select{
 							case orderFloorDownChan <- floor:
 						default:
-							fmt.Println("states: CheckOrderChannelsAndCallEvents(): ERROR: orderFloorDownChan is BLOCKED!!")
+							fmt.Println("states: CheckOrderButtonsAndSendToOrderChannels(): ERROR: orderFloorDownChan is BLOCKED!!")
 						}						
 					}
 					updatePreviousButtonState(1, floor, driver.CheckButton(1, floor))
@@ -217,7 +261,7 @@ func CheckOrderButtonsAndSendToOrderChannels(){
 					select{
 						case orderCommandChan <- floor:
 					default:
-						fmt.Println("states: CheckOrderChannelsAndCallEvents(): ERROR: orderCommandChan is BLOCKED!!")
+						fmt.Println("states: CheckOrderButtonsAndSendToOrderChannels(): ERROR: orderCommandChan is BLOCKED!!")
 					}		
 				}
 				updatePreviousButtonState(2, floor, driver.CheckButton(2, floor))
@@ -259,24 +303,29 @@ func CheckIfTimeoutCallEventAndPrintQueue(){
 	}
 }
 
-func CheckRemoteENOEQCall(){
-	for temp := range communication.ENOEQChan{
-		EvNewOrderInEmptyQueue(temp.Floor)
-		fmt.Printf("states: CheckRemoteENOEQCall(): EvNewOrderInEmptyQueue() called with floor %v\n", temp.Floor)
-		queue.AddOrder(temp.Dir, temp.Floor)
-		fmt.Printf("states: Motor remote started from IDLE because this elevator was best fit to take order to floor %v\n", temp.Floor)
-		if temp.Dir == 0{
-			driver.SetButtonLight(0, temp.Floor)
-			communication.NotifyTheOthers("OU", temp.Floor, true, 0)	
-		}else if temp.Dir == 1{
-			driver.SetButtonLight(1, temp.Floor)
-			communication.NotifyTheOthers("OD", temp.Floor, true, 0)
-		}else{
-			fmt.Println("states: ERROR: CheckRemoteEventNewOrderInEmptyQueueTrigger() identified invalid temp.Dir on ENOEQChan! Consequence: NotifyTheOthers() not called")
-			//r := fmt.Errorf("states: ERROR: CheckRemoteEventNewOrderInEmptyQueueTrigger() identified invalid temp.Dir on ENOEQChan! Consequence: NotifyTheOthers() not called")
-			//fmt.Println(r)
-			//return r
+func CheckRemoteChanAndCallEvents(){
+	for temp := range communication.RemoteChan{
+		if (temp.Floor != driver.GetFloorSensorSignal()){
+			EvNewOrderInEmptyQueue(temp.Floor)
+			fmt.Printf("states: CheckRemoteChanAndCallEvents(): EvNewOrderInEmptyQueue() called with floor %v\n", temp.Floor)
+			queue.AddOrder(temp.Dir, temp.Floor)
+			fmt.Printf("states: CheckRemoteChanAndCallEvents(): Motor remote started from IDLE because this elevator was best fit to take order to floor %v\n", temp.Floor)
+			if temp.Dir == 0{
+				driver.SetButtonLight(0, temp.Floor)
+				communication.NotifyTheOthers("OU", temp.Floor, true, 0)	
+			}else if temp.Dir == 1{
+				driver.SetButtonLight(1, temp.Floor)
+				communication.NotifyTheOthers("OD", temp.Floor, true, 0)
+			}else{
+				fmt.Println("states: ERROR: CheckRemoteChanAndCallEvents() identified invalid temp.Dir on RemoteChan! Consequence: NotifyTheOthers() not called")
+				//r := fmt.Errorf("states: ERROR: CheckRemoteChanAndCallEvents() identified invalid temp.Dir on RemoteChan! Consequence: NotifyTheOthers() not called")
+				//fmt.Println(r)
+				//return r
+			}
+		}else if (temp.Floor == driver.GetFloorSensorSignal()){
+			EvNewOrderInCurrentFloor()
 		}
+
 		time.Sleep(3 * time.Second) //Remeber this! Can be set to lower value if needed
 	}
 }

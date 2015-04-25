@@ -11,8 +11,8 @@ import (
 )
 // elevatorNumber, numberOfFloors and numberOfElevators constants are set in ../src/queue/queue.go
 
-var	elevIpAddresses []string = []string{"129.241.187.158", "129.241.187.159"}
-var elevPorts []int = []int{20010, 20011}
+var	elevIpAddresses []string = []string{"129.241.187.158", "129.241.187.159", "129.241.187.161", "129.241.187.109", "129.241.187.154"}
+var elevPorts []int = []int{20010, 20011, 20008, 20025, 20007}
 
 
 func main(){
@@ -40,9 +40,9 @@ func main(){
 
 	go states.CheckOrderButtonsAndSendToOrderChannels()
 	
-	go states.CheckOrderChannelsAndCallEvents()
+	go states.CheckOrderChansAndCallEvents()
 	
-	go states.CheckRemoteENOEQCall()
+	go states.CheckRemoteChanAndCallEvents()
 	
 	go states.CheckIfTimeoutCallEventAndPrintQueue()
 	
