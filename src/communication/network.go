@@ -27,32 +27,22 @@ func TCPServerInit(localListenPort int, send_ch, receive_ch chan Tcp_message) er
 		}
 	}()
 
-	//fmt.Println("TCPServerInit: called")
-
 	// Making conn_list instance
 	conn_list = make(map[string]*net.TCPConn)
 
 	
 	// Using udp to figure out its address on the local network
 	baddr, err := net.ResolveUDPAddr("udp4", BroadcastIP+":"+strconv.Itoa(BroadcastPort)) // Itoa for string representation of integer
-	
 	if err != nil {
 		fmt.Println("communication: TCPServerInit: ERROR: Could not resolve baddr")
 		return err
 	}
-
 	tempConn, err := net.DialUDP("udp4", nil, baddr)
 	if err != nil {
 		fmt.Println("communication: TCPServerInit: Failed to dial baddr for tempLAddr generation")
 		return err
 	}
-
-	//fmt.Printf("communication: TCPServerInit: UDP-dialed %v to resolve its local address\n", baddr) // midlertidig
-	//fmt.Println(baddr)
-
 	tempLAddr := tempConn.LocalAddr()
-
-	
 
 	// Using tempLAddr to make tcp connection to listen to
  	laddr, err := net.ResolveTCPAddr("tcp4", tempLAddr.String())
@@ -88,7 +78,9 @@ func tcp_transmit_server (s_ch chan Tcp_message){
 		if (ok != true ){
 			// NB! This blocks s_ch (sendChan) because of reconnect for-loop. Not any more, removed for-loop!
 			if !new_tcp_conn(msg.Raddr){
-				fmt.Println("communication: tcp_transmit_server: ERROR: Could not establish new tcp connection after two tries.\n               Consequence: Remote elevator must be disconnected and will not receive the messages.\n                            Listening for next outgoing message to arrive on sendChan.")
+				fmt.Println("communication: tcp_transmit_server could not establish new tcp connection right now, after two tries")
+				fmt.Println("               Remote elevator(s) must be disconnected and will not receive the sent messages until they are turned on")
+				fmt.Println("--> Listening for next outgoing message to arrive on sendChan")
 				continue
 			}	
 		}
@@ -116,14 +108,11 @@ func tcp_transmit_server (s_ch chan Tcp_message){
 func tcp_handle_server (listener *net.TCPListener, r_ch chan Tcp_message){
 	for {
 		newConn, err := listener.AcceptTCP()
-		
 		if err != nil {
 			fmt.Printf("communication: tcp_handle_server: Error accepting tcp conn \n")
 			panic(err)
 		}
-
 		// assume from here the connection was accepted
-
 		raddr := newConn.RemoteAddr()
 		
 		conn_list_mutex.Lock()
@@ -183,11 +172,11 @@ func new_tcp_conn(raddr string) bool{
 	}
 	*/
 	newConn, err := net.DialTCP("tcp4", nil,  addr)
-	
 	if err != nil {
 		fmt.Printf("communication: new_tcp_conn: DialTCP to %v failed. Trying DialTCP one more time\n", raddr)
 		time.Sleep(500*time.Millisecond)
 		newConn, err := net.DialTCP("tcp4", nil,  addr)
+		
 		if err != nil{
 			//fmt.Printf("communication: new_tcp_conn: DialTCP to %v failed again!. Giving up\n", raddr)
 			return false
@@ -198,6 +187,7 @@ func new_tcp_conn(raddr string) bool{
 			conn_list_mutex.Unlock()
 			return true//got it BREAK!
 		}
+		
 	}else{
 		//fmt.Printf("communication: new_tcp_conn: DialTCP to %v succeeded\n", raddr)
 		conn_list_mutex.Lock()

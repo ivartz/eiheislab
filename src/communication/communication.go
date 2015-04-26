@@ -12,15 +12,14 @@ import(
 var elevIpAddresses = make([]string, queue.GetNumberOfElevators())
 var elevPorts = make([]int, queue.GetNumberOfElevators())
 
-// The message form is a struct. Capital letter because the struct is used outside network.go
 // This struct is sent in send_ch and recived in receive_ch
 type Tcp_message struct{
 	Raddr string //Remote address, like "129.241.187.144:20012" is embedded in the message
 	Data []byte //jsoned data
 	Length int
 }
-var receiveChan = make (chan Tcp_message)
-var sendChan = make (chan Tcp_message, (8 * (queue.GetNumberOfElevators() - 1)) - 1) // (8 * (queue.GetNumberOfElevators() - 1)) - 1
+var receiveChan = make (chan Tcp_message, 5)
+var sendChan = make (chan Tcp_message, (11 * (queue.GetNumberOfElevators() - 1)) - 1) // (8 * (queue.GetNumberOfElevators() - 1)) - 1
 
 // unjsoned data
 type msg struct{
@@ -31,22 +30,16 @@ type msg struct{
 	Set bool
 	Dir int
 }
-var sendToAllOthersChan = make (chan msg, 7) // 3 + 5 - 1 because 8 is max msg simultaneous sent to sendToAllOthersChan
+var sendToAllOthersChan = make (chan msg, 10) // 5 + 5 - 1 = 9 this is max msg simultaneous sent to sendToAllOthersChan //NB! Kan måttes gjøres større
 
-// Struct and chan to handle remote calls when the queue is empty
+// Struct and chan to handle remote calls
 type RemoteMessage struct{
 	Floor int
 	Dir int
 }
 var RemoteChan = make (chan RemoteMessage)
 
-
 func Initialize(eip []string, ep []int) bool{
-
-	// Unique list of 	
-//	elevIpAddresses = []string{"129.241.187.143", "129.241.187.141", "129.241.187.146"}
-//	elevPorts = []int{20005, 20004, 20006}
-
 	elevIpAddresses = eip
 	elevPorts = ep
 
@@ -58,11 +51,9 @@ func Initialize(eip []string, ep []int) bool{
 	go HandleOutgoingMessages()
 	go HandleIncomingMessages()
 
-	fmt.Printf("communication: TCP server now listening on port: %v\n successfully initialized", elevPorts[queue.GetElevatorNumber() - 1])	
-
+	fmt.Printf("communication: TCP server now listening on port: %v\n", elevPorts[queue.GetElevatorNumber() - 1])	
 	return true
 }
-
 
 func NotifyTheOthers(mtype string, floor int, set bool, dir int){
 	fmt.Println("communication: NotifyTheOthers() was called")
@@ -72,29 +63,15 @@ func NotifyTheOthers(mtype string, floor int, set bool, dir int){
 		case sendToAllOthersChan <- temp:
 			fmt.Println("communication: NotifyTheOthers(): msg was sent into sendToAllOthersChan")
 		default:
-			fmt.Println("communication: NotifyTheOthers(): ERROR: Can't send msg into --> sendToAllOthersChan <-- because it is BLOCKED!!")	
+			fmt.Println("communication: ***************************NotifyTheOthers(): ERROR: Can't send msg into --> sendToAllOthersChan <-- because it is BLOCKED!!")	
 		}
 	}else{
 		fmt.Println("communication: ERROR: Can't NotifyTheOthers(), invalid string argument")
 	}
 }
 
-//  as goroutine
+//  Run as goroutine
 func HandleOutgoingMessages() error{
-	//fmt.Println("communication: HandleOutgoingMessages() goroutine started")
-	
-	/*
-	// Testing
-	for{
-		select{
-		case temp := <- sendToAllOthersChan:
-			fmt.Println(temp)
-		}
-	}*/
-
- 	// working here
-
-	
 	for temp := range sendToAllOthersChan{
 		//fmt.Println("communication: HandleOutgoingMessages(): New message to send to the other elevators!")
 		jtemp, err := json.Marshal(temp)
@@ -102,7 +79,6 @@ func HandleOutgoingMessages() error{
 			fmt.Println("communication: json.Marshal() error! HandleOutgoingMessages() goroutine ending")
 			return err
 		}
-		
 		for i := range elevIpAddresses{
 			if i + 1 != queue.GetElevatorNumber(){
 				tcpm := Tcp_message{elevIpAddresses[i]+":"+strconv.Itoa(elevPorts[i]), jtemp, len(jtemp)}
@@ -116,12 +92,9 @@ func HandleOutgoingMessages() error{
 				
 			}
 		}
-		time.Sleep(500 * time.Millisecond) // sjekk mer!	fmgndfbdflgfkdfkgkdfjgbfjgdfkjgfkjdgbjkfdhgbkfdgbfdbgkjdbkgjhjdfkgbgh
+		time.Sleep(100 * time.Millisecond) // sjekk mer!	fmgndfbdflgfkdfkgkdfjgbfjgdfkjgfkjdgbjkfdhgbkfdgbfdbgkjdbkgjhjdfkgbgh
 	}
-	
-
 	r := fmt.Errorf("communication: ERROR: HandleOutgoingMessages() has quit range over sendToAllOthersChan!")
-
 	return r
 }
 
@@ -198,7 +171,7 @@ func HandleIncomingMessages() error{
 			fmt.Println(r)
 			return r
 		}
-		//time.Sleep(10 * time.Millisecond)
+		time.Sleep(10 * time.Millisecond)
 	}
 	r := fmt.Errorf("communication: HandleIncomingMessages(): ERROR: Quit range over receiveChan!")
 	fmt.Println(r)

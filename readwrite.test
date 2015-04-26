@@ -1,0 +1,2 @@
+ioutil.WriteFile("nameOnFile", data, 0666)
+ioutil.ReadFile("nameOnFile")

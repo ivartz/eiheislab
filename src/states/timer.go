@@ -19,7 +19,6 @@ func ResetTimer(){
 		return
 	}
 }
-
 func CheckTimeOut() bool{
 	select{
 	case <- timeOut:
@@ -29,8 +28,4 @@ func CheckTimeOut() bool{
 
 		return false
 	}
-}
-
-func PrintCurrentTime(){
-	fmt.Printf("states: Time: PrintCurrentTime(): %v\n", time.Now())
 }

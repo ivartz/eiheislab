@@ -12,6 +12,7 @@ var orderFloorUpChan = make (chan int)
 var orderFloorDownChan = make (chan int)
 var orderCommandChan = make (chan int)
 
+// Button logic
 var previousFloorUpButtonState = make ([]bool, queue.GetNumberOfFloors())
 var previousFloorDownButtonState = make ([]bool, queue.GetNumberOfFloors())
 var previousCommandButtonState = make ([]bool, queue.GetNumberOfFloors())
@@ -20,7 +21,6 @@ func Initialize() bool{
 	driver.MoveDown()
 	queue.SetDirectionElevator(-1)
 	InitializePreviousButtonStateSlices()	
-
 	return true
 }
 
@@ -114,7 +114,6 @@ func RemoveCorrectOrdersClearLightsSetDirectionAndNotifyTheOthers(f int){
 		communication.NotifyTheOthers("OU", f, false, 0)
 		driver.ClearButtonLight(2, f)
 		// Changing direction so that AssignNewTask() quickly can find the best task for the this elevator
-		// Also so that ShallStop() will d
 		queue.SetDirectionElevator(1)
 		communication.NotifyTheOthers("D", 0, false, 1)
 	}else if (f == queue.GetNumberOfFloors()){
@@ -139,14 +138,14 @@ func CheckOrderChansAndCallEvents(){
 					queueIsEmpty := queue.IsEmpty()
 					closestElev := queue.IsClosest(floor)
 					if (queueIsEmpty && queue.GetElevatorNumber() == closestElev){
-						EvNewOrderInEmptyQueue(floor)					
+						EvOrder(floor)					
 						queue.AddOrder(0, floor)
 						driver.SetButtonLight(0, floor)
 						fmt.Printf("states: CheckOrderChansAndCallEvents(): This elevator (%v) was closest and took the order, calling NotifyTheOthers()\n", queue.GetElevatorNumber())
 						communication.NotifyTheOthers("OU", floor, true, 0)
 					}else if (queueIsEmpty && queue.GetElevatorNumber() != closestElev){
 						fmt.Println("states: CheckOrderChansAndCallEvents(): Elevator was not closest, calling NotifyTheOthers()")
-						communication.NotifyTheOthers("ROU", floor, false, closestElev) // Should cause EvNewOrderInEmptyQueue(), AddOrder() SetButtonLight() and NotifyTheOthers() to be called on closest (best) remote elevator 
+						communication.NotifyTheOthers("ROU", floor, false, closestElev) // Should cause EvOrder(), AddOrder() SetButtonLight() and NotifyTheOthers() to be called on closest (best) remote elevator 
 					}else{
 						queue.AddOrder(0, floor)
 						driver.SetButtonLight(0, floor)
@@ -154,8 +153,7 @@ func CheckOrderChansAndCallEvents(){
 						communication.NotifyTheOthers("OU", floor, true, 0)
 					}
 				}else if floor == driver.GetFloorSensorSignal(){
-					EvNewOrderInCurrentFloor()
-					//fmt.Println("states: EvNewOrderInCurrentFloor() called")
+					EvOrderInCurrentFloor()
 				} 
 			}
 		case floor := <- orderFloorDownChan:
@@ -165,7 +163,7 @@ func CheckOrderChansAndCallEvents(){
 					queueIsEmpty := queue.IsEmpty()
 					closestElev := queue.IsClosest(floor)
 					if (queueIsEmpty && queue.GetElevatorNumber() == closestElev){
-						EvNewOrderInEmptyQueue(floor)					
+						EvOrder(floor)					
 						queue.AddOrder(1, floor)
 						driver.SetButtonLight(1, floor)
 						fmt.Println("states: CheckOrderChansAndCallEvents(): Elevator was closest and took the order, calling NotifyTheOthers()")
@@ -180,8 +178,8 @@ func CheckOrderChansAndCallEvents(){
 						communication.NotifyTheOthers("OD", floor, true, 0)
 					}
 				}else if floor == driver.GetFloorSensorSignal(){
-					EvNewOrderInCurrentFloor()
-					//fmt.Println("states: EvNewOrderInCurrentFloor() called")
+					EvOrderInCurrentFloor()
+					//fmt.Println("states: EvOrderInCurrentFloor() called")
 				}
 			}			
 		case floor := <- orderCommandChan:
@@ -191,7 +189,7 @@ func CheckOrderChansAndCallEvents(){
 					if (elevatorStopButton){
 						EvStopButtonOff()
 					}
-					EvNewOrderInEmptyQueue(floor)
+					EvOrder(floor)
 					queue.AddOrder(2, floor)
 					driver.SetButtonLight(2, floor)	
 				}else{
@@ -200,7 +198,7 @@ func CheckOrderChansAndCallEvents(){
 				}
 			}else if floor == driver.GetFloorSensorSignal(){
 				EvStopButtonOff()
-				EvNewOrderInCurrentFloor()
+				EvOrderInCurrentFloor()
 			}
 		}
 		time.Sleep(10 * time.Millisecond)
@@ -220,7 +218,6 @@ func CheckOrderButtonsAndSendToOrderChannels(){
 						}						
 					}
 					updatePreviousButtonState(0, floor, driver.CheckButton(0, floor))
-
 				}else if (driver.CheckButton(1, floor) != getPreviousButtonState(1, floor)){
 					if driver.CheckButton(1, floor){
 						select{
@@ -271,9 +268,50 @@ func CheckOrderButtonsAndSendToOrderChannels(){
 	}
 }
 
+func CheckRemoteChanAndCallEvents(){
+	for temp := range communication.RemoteChan{
+		if (temp.Floor != driver.GetFloorSensorSignal()){
+			EvOrder(temp.Floor)
+			
+			fmt.Printf("states: CheckRemoteChanAndCallEvents(): EvOrder()/NotifyTheOthers() called with floor/task %v\n", temp.Floor)
+			fmt.Printf("states: CheckRemoteChanAndCallEvents(): Motor remote started from IDLE because this elevator was best fit to take order to floor %v\n", temp.Floor)
+			
+			if !queue.CheckOrder(temp.Dir, temp.Floor){
+				queue.AddOrder(temp.Dir, temp.Floor)
+				if temp.Dir == 0{
+					driver.SetButtonLight(0, temp.Floor)
+					communication.NotifyTheOthers("OU", temp.Floor, true, 0)	
+				}else if temp.Dir == 1{
+					driver.SetButtonLight(1, temp.Floor)
+					communication.NotifyTheOthers("OD", temp.Floor, true, 0)
+				}else{
+					fmt.Println("states: ERROR: CheckRemoteChanAndCallEvents() identified invalid temp.Dir on RemoteChan! Consequence: NotifyTheOthers() not called")
+					//r := fmt.Errorf("states: ERROR: CheckRemoteChanAndCallEvents() identified invalid temp.Dir on RemoteChan! Consequence: NotifyTheOthers() not called")
+					//fmt.Println(r)
+					//return r
+				}
+			}
+			
+		}else if (temp.Floor == driver.GetFloorSensorSignal()){
+			EvOrderInCurrentFloor()
+		}
+		time.Sleep(1 * time.Second) //Remeber this! Can be set to lower value if needed
+	}
+}
+
+func CheckIfTimeoutCallEventAndPrintQueue(){
+	// Time out signal check
+	for{
+		if (CheckTimeOut() && !driver.CheckObstruction()){
+			EvTimerOut()
+			//queue.PrintQueue()
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+}
+
 func CheckFloorSensorAndCallEvents(){
-	// Check if floor reached and call EvFloorReached() once
-	// -1 if a floor is not reached. If floor reached: 1-4. Belongs to CheckFloorSensorAndCallEvents() 
+	// -1 if a floor is not reached. If floor reached: 1-4
 	reached := -1	
 	for{
 		if (driver.GetFloorSensorSignal() != reached){
@@ -289,44 +327,6 @@ func CheckFloorSensorAndCallEvents(){
 			PrintState()
 		}
 		time.Sleep(10 * time.Millisecond)		
-	}
-}
-
-func CheckIfTimeoutCallEventAndPrintQueue(){
-	// Time out signal check
-	for{
-		if (CheckTimeOut() && !driver.CheckObstruction()){
-			EvTimerOut()
-			//queue.PrintQueue()
-		}
-		time.Sleep(800 * time.Millisecond)
-	}
-}
-
-func CheckRemoteChanAndCallEvents(){
-	for temp := range communication.RemoteChan{
-		if (temp.Floor != driver.GetFloorSensorSignal()){
-			EvNewOrderInEmptyQueue(temp.Floor)
-			fmt.Printf("states: CheckRemoteChanAndCallEvents(): EvNewOrderInEmptyQueue() called with floor %v\n", temp.Floor)
-			queue.AddOrder(temp.Dir, temp.Floor)
-			fmt.Printf("states: CheckRemoteChanAndCallEvents(): Motor remote started from IDLE because this elevator was best fit to take order to floor %v\n", temp.Floor)
-			if temp.Dir == 0{
-				driver.SetButtonLight(0, temp.Floor)
-				communication.NotifyTheOthers("OU", temp.Floor, true, 0)	
-			}else if temp.Dir == 1{
-				driver.SetButtonLight(1, temp.Floor)
-				communication.NotifyTheOthers("OD", temp.Floor, true, 0)
-			}else{
-				fmt.Println("states: ERROR: CheckRemoteChanAndCallEvents() identified invalid temp.Dir on RemoteChan! Consequence: NotifyTheOthers() not called")
-				//r := fmt.Errorf("states: ERROR: CheckRemoteChanAndCallEvents() identified invalid temp.Dir on RemoteChan! Consequence: NotifyTheOthers() not called")
-				//fmt.Println(r)
-				//return r
-			}
-		}else if (temp.Floor == driver.GetFloorSensorSignal()){
-			EvNewOrderInCurrentFloor()
-		}
-
-		//time.Sleep(3 * time.Second) //Remeber this! Can be set to lower value if needed
 	}
 }
 

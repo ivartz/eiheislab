@@ -2,19 +2,16 @@ package queue
 
 import (
 	"fmt"
-//	"driver"
-//	"communication"
 )
 
 // Unique for each elevator
 const elevatorNumber int = 1
 
 //
-const numberOfFloors int = 4
 
-//const numberOfElevators int = 5
-//const numberOfElevators int = 3
-const numberOfElevators int = 2
+const numberOfElevators int = 3
+
+const numberOfFloors int = 4
 
 // Must be synchronized
 var FloorElevator = make([]int, numberOfElevators)
@@ -27,17 +24,16 @@ var OrderFloorDown = make([]bool, numberOfFloors)
 // Not synchronized
 var orderCommand = make([]bool, numberOfFloors)
 
-var task int = -1
+//var task int = -1
 
 func Initialize() bool{
 	InitializeQueue()
 	InitializeFloorsAndDirectionsAndTasks()
 
-	fmt.Println("****************************************")
+	fmt.Println("******************************************************************************************")
 	fmt.Printf("queue: Elevator #: %v\n", GetElevatorNumber())
 	fmt.Printf("queue: # floors: %v\n", GetNumberOfFloors())
-	fmt.Printf("queue: # elevators: %v\n", GetNumberOfElevators())
-
+	fmt.Printf("queue: # elevators: %v\n\n", GetNumberOfElevators())
 	return true
 }
 
@@ -94,109 +90,84 @@ func RemoveOrder(typeOrder int, floorButton int){
 	orderCommand[floorButton - 1] = false
 }
 
-func AssignNewTask(){
-	// Assigns new task that is not currently taken by other elevators, using TaskElevator slice
-	thisFloor := GetCurrentFloor()
+func AssignNewTask() (int, int, int){
+	// Assigns new task to an elevator by updating TaskElevator and returning task, buttonType, bestFitElevator
+	task := -1
+	buttonType := 2
+	bestFitElevator := -1
 
-	fmt.Println("queue: AssignNewTask(): Called")
+	closestDistanceFromElevatorToOrder := numberOfFloors
+	
+	for index := range orderCommand{
+		if (orderCommand[index]){
+			//closest := IsClosest(index + 1)
 
-	// Morten sier:
-	// Hvis tom kø: stopp
-	// Hvis bestilling lengre frem i samme retning: fortsett samme retning
-	// Hvis ikke bestilling lengre frem i samme retning, men bestilling i motsatt retning: snu
-
-
-	if (GetDirectionElevator() == 1){
-		if (thisFloor == numberOfFloors){
-			for floor := numberOfFloors - 2; floor > -1; floor--{
-				for index := range TaskElevator{
-					elevNr := index + 1
-					potentialTask := floor + 1
-					if (OrderFloorUp[floor] || OrderFloorDown[floor] || orderCommand[floor] && TaskElevator[index] != potentialTask && elevNr != elevatorNumber){ //Makes shure that already assigned on other elevators, are assigned
-						task = potentialTask
-						return
-					}
-				}
+			dist := FloorElevator[GetElevatorNumber() - 1] - (index + 1)
+			if dist < 0{
+				dist = -dist
 			}
-		}else{
-			for floor := thisFloor; floor < numberOfFloors; floor++{
-				for index := range TaskElevator{
-					elevNr := index + 1
-					potentialTask := floor + 1	
-					if (OrderFloorUp[floor] || OrderFloorDown[floor] || orderCommand[floor] && TaskElevator[index] != potentialTask && elevNr != elevatorNumber){
-						task = potentialTask
-						return
-					}		
-				}
-			} 
-		}
-		if (thisFloor != 1){
-			for floor := thisFloor - 2; floor > -1; floor--{
-				for index := range TaskElevator{
-					elevNr := index + 1
-					potentialTask := floor + 1
-					if (OrderFloorDown[floor] || OrderFloorUp[floor] || orderCommand[floor] && TaskElevator[index] != potentialTask && elevNr != elevatorNumber){
-						task = potentialTask
-						return
-					}						
-				}
+			if dist < closestDistanceFromElevatorToOrder{
+				closestDistanceFromElevatorToOrder = dist
+				task = index + 1
+				buttonType = 2
+				bestFitElevator = GetElevatorNumber()
 			}
 		}
-
-	}else if (GetDirectionElevator() == -1){
-		if (thisFloor == 1){
-			for floor := 1; floor < numberOfFloors; floor++{
-				for index := range TaskElevator{
-					elevNr := index + 1
-					potentialTask := floor + 1
-					if (OrderFloorUp[floor] || OrderFloorDown[floor] || orderCommand[floor] && TaskElevator[index] != potentialTask && elevNr != elevatorNumber){
-						task = potentialTask
-						return
-					}					
-				}
-			}
-		}else{
-			for floor := thisFloor - 2; floor > -1; floor--{
-				for index := range TaskElevator{
-					elevNr := index + 1
-					potentialTask := floor + 1
-					if (OrderFloorDown[floor] || OrderFloorUp[floor] || orderCommand[floor] && TaskElevator[index] != potentialTask && elevNr != elevatorNumber){
-						task = potentialTask
-						return
-					}					
-				}
-			} 
-		}
-		if (thisFloor != numberOfFloors){
-			for floor := thisFloor; floor < numberOfFloors; floor++{
-				for index := range TaskElevator{
-					elevNr := index + 1
-					potentialTask := floor + 1
-					if (OrderFloorUp[floor] || OrderFloorDown[floor] || orderCommand[floor] && TaskElevator[index] != potentialTask && elevNr != elevatorNumber){
-						task = potentialTask
-						return
-					}	
-				}
-			}
-		}	
 	}
-	for floor := 0; floor < numberOfFloors; floor++{
-		for index := range TaskElevator{
-			elevNr := index + 1
-			potentialTask := floor + 1
-			if (OrderFloorUp[floor] || OrderFloorDown[floor] || orderCommand[floor] && TaskElevator[index] != potentialTask && elevNr != elevatorNumber){
-				task = potentialTask
-				return
+
+	if bestFitElevator != -1{
+		TaskElevator[bestFitElevator - 1] = task
+		return task, buttonType, bestFitElevator
+	}
+
+	for index := range OrderFloorUp{
+
+		if (OrderFloorUp[index]){
+			closest := IsClosest(index + 1)
+			if FloorElevator[closest - 1] != index + 1{
+				dist := FloorElevator[closest - 1] - (index + 1)
+				if dist < 0{
+					dist = -dist
+				}
+				if dist < closestDistanceFromElevatorToOrder{
+					closestDistanceFromElevatorToOrder = dist
+					task = index + 1
+					buttonType = 0
+					bestFitElevator = closest
+				}
+			}
+		}else if (OrderFloorDown[index]){
+			closest := IsClosest(index + 1)
+			if FloorElevator[closest - 1] != index + 1{
+				dist := FloorElevator[closest - 1] - (index + 1)
+				if dist < 0{
+					dist = -dist
+				}
+				if dist < closestDistanceFromElevatorToOrder{
+					closestDistanceFromElevatorToOrder = dist
+					task = index + 1
+					buttonType = 1
+					bestFitElevator = closest
+				}	
 			}	
 		}
+
 	}
-	// Ingen bestillinger STOPP
-	fmt.Println("queue: AssignNewTask(): No non-taken order in queue. Setting task to -1")
-	task = -1
+
+	if bestFitElevator != -1{
+		TaskElevator[bestFitElevator - 1] = task
+	}
+	
+
+	return task, buttonType, bestFitElevator
 }
 
 func GetAssignedTask() int{
-	return task
+	return TaskElevator[elevatorNumber - 1]
+}
+
+func ClearAssignedTask(){
+	TaskElevator[elevatorNumber - 1] = -1
 }
 
 func ShallStop() bool{
@@ -276,42 +247,25 @@ func ShallRemoveOppositeFloorOrder() bool{
 }
 
 func SetCurrentFloor(floor int){
-	//fmt.Printf("queue: SetCurrentFloor(): Called to set floor = %v on this elevator (%v)\n", floor, GetElevatorNumber())
 	FloorElevator[elevatorNumber - 1] = floor
 }
-
 func GetCurrentFloor() int{
 	return FloorElevator[elevatorNumber - 1]
 }
-
 func SetDirectionElevator(dir int){
-	//fmt.Printf("queue: SetDirectionElevator(): Called to set dir = %v on this elevator (%v)\n", dir, GetElevatorNumber())
 	DirectionElevator[elevatorNumber - 1] = dir
 }
-
 func GetDirectionElevator() int{
 	return DirectionElevator[elevatorNumber - 1]
 }
-
 func GetElevatorNumber() int{
 	return elevatorNumber
 }
-
 func GetNumberOfFloors() int{
 	return numberOfFloors
 }
-
 func GetNumberOfElevators() int{
 	return numberOfElevators
-}
-
-func PrintQueue(){
-	fmt.Println("****************************************")
-	fmt.Println("F | C\t\t| FUP\t| FDOWN\t")
-	for floor := numberOfFloors - 1; floor > -1; floor--{
-		fmt.Printf("%v | %v\t| %v\t| %v\n", floor + 1, orderCommand[floor], OrderFloorUp[floor], OrderFloorDown[floor])
-	}
-	fmt.Println("****************************************")
 }
 
 func IsEmpty() bool{
@@ -323,9 +277,8 @@ func IsEmpty() bool{
 	return true
 }
 
-//NB! DENNE FUNGERER IKKE FULLSTENDIG UT!!
 func IsClosest(floor int) int{
-	fmt.Println("queue: IsClosest(): Called")
+	//fmt.Println("queue: IsClosest(): Called")
 	diff := numberOfFloors
 	elev := elevatorNumber
 	for index := range FloorElevator{
@@ -340,6 +293,15 @@ func IsClosest(floor int) int{
 			}		
 		}
 	}
-	fmt.Printf("queue: IsClosest(): Elevator %v is closest to floor %v\n", elev, floor)
+	//fmt.Printf("queue: IsClosest(): Elevator %v is closest to floor %v\n", elev, floor)
 	return elev
+}
+
+func PrintQueue(){
+	fmt.Println("****************************************")
+	fmt.Println("F | C\t\t| FUP\t| FDOWN\t")
+	for floor := numberOfFloors - 1; floor > -1; floor--{
+		fmt.Printf("%v | %v\t| %v\t| %v\n", floor + 1, orderCommand[floor], OrderFloorUp[floor], OrderFloorDown[floor])
+	}
+	fmt.Println("****************************************")
 }

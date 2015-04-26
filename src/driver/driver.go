@@ -58,22 +58,16 @@ func Stop(){
 }
 
 func SetButtonLight(dir OrderType, floor int){
-	//var hardware OrderType
 	hardware := LocalizeHardware("light", floor, dir)
 	IoSetBit(int(hardware))
 }
 
 func ClearButtonLight(dir OrderType, floor int){
-	//var hardware OrderType
 	hardware := LocalizeHardware("light", floor, dir)
 	IoClearBit(int(hardware))
 }
 
 func CheckButton(t OrderType, floor int) bool{
-	//var hardware OrderType
-	/*if t == BUTTON_RELEASED{
-		return false
-	}*/ 
 	hardware := LocalizeHardware("button", floor, t)
 	if IoReadBit(int(hardware)) != 0{
 		return true

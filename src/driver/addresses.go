@@ -1,6 +1,5 @@
 package driver
 
-
 //in port 4
 const	PORT4 			= 3
 const	OBSTRUCTION 	= (0x300+23)
